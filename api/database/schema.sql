@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS memberships (
 CREATE TABLE IF NOT EXISTS member_cards (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
-  card_number VARCHAR(50) UNIQUE NOT NULL,
-  nfc_id VARCHAR(100) UNIQUE NOT NULL,
+  card_number CHAR(10) UNIQUE NOT NULL,  -- 10 digit desimal, bisa dibaca NFC external reader
+  nfc_id CHAR(10) UNIQUE NOT NULL,       -- sama dengan card_number (10 digit desimal)
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -100,8 +100,8 @@ INSERT INTO memberships (user_id, paket, tanggal_mulai, tanggal_berakhir, status
 (2, 'tahunan', CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 'active');
 
 INSERT INTO member_cards (user_id, card_number, nfc_id) VALUES
-(1, 'GYM123456', 'NFC-GYM123456'),
-(2, 'GYM789012', 'NFC-GYM789012');
+(1, '0001847291', '0001847291'),
+(2, '0002563810', '0002563810');
 
 INSERT INTO promos (judul, deskripsi, diskon_persen, tanggal_mulai, tanggal_berakhir) VALUES
 ('Promo Tahun Baru', 'Diskon 30% untuk membership tahunan', 30, '2024-01-01', '2024-01-31'),

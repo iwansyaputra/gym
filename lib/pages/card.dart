@@ -111,7 +111,13 @@ class _CardMemberPageState extends State<CardMemberPage> {
     String nama = user?['nama'] ?? 'User';
     String email = user?['email'] ?? '-';
     String telepon = user?['hp'] ?? '-';
-    String idMember = card?['card_number'] ?? 'Belum ada kartu';
+    String idMemberRaw = card?['card_number'] ?? '';
+    // Format 10 digit: XXXX XXX XXX (mudah dibaca, seperti kartu ATM)
+    String idMember = idMemberRaw.isEmpty
+        ? 'Belum ada kartu'
+        : idMemberRaw.length == 10
+            ? '${idMemberRaw.substring(0, 4)} ${idMemberRaw.substring(4, 7)} ${idMemberRaw.substring(7, 10)}'
+            : idMemberRaw;
     String gender = user?['jenis_kelamin'] ?? '-';
     String alamat = user?['alamat'] ?? '-';
 

@@ -83,14 +83,12 @@ const register = async (req, res) => {
             userId = result.insertId;
 
             // 2. LANGSUNG BUAT MEMBER CARD (Status Inactive dulu)
-            // Format: HELIOZ + YY + MM + INISIAL + USERID
-            const date = new Date();
-            const yearShort = date.getFullYear().toString().slice(-2); // 2025 -> 25
-            const month = (date.getMonth() + 1).toString().padStart(2, '0'); // 12
-            const initial = nama.charAt(0).toUpperCase();
-
-            const cardNumber = `HELIOZ${yearShort}${month}${initial}${userId}`;
-            const nfcId = `NFC-${cardNumber}`;
+            // Format: 10 digit desimal (bisa dibaca NFC external reader)
+            // Struktur: userId (4 digit, padded) + 6 digit angka acak
+            const userIdPart = userId.toString().padStart(4, '0').slice(-4);
+            const randomPart = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+            const cardNumber = `${userIdPart}${randomPart}`;
+            const nfcId = cardNumber; // NFC ID = card number (10 digit desimal)
 
             await pool.query(
                 'INSERT INTO member_cards (user_id, card_number, nfc_id, is_active) VALUES (?, ?, ?, FALSE)',
@@ -222,12 +220,11 @@ const verifyOTP = async (req, res) => {
         // -- Jaga-jaga: kalo card belum ada (kasus user lama retry), buatkan sekarang --
         const [existingCards] = await pool.query('SELECT * FROM member_cards WHERE user_id = ?', [user.id]);
         if (existingCards.length === 0) {
-            const date = new Date();
-            const yearShort = date.getFullYear().toString().slice(-2);
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const initial = user.nama ? user.nama.charAt(0).toUpperCase() : 'X';
-            const cardNumber = `HELIOZ${yearShort}${month}${initial}${user.id}`;
-            const nfcId = `NFC-${cardNumber}`;
+            // Format: 10 digit desimal (bisa dibaca NFC external reader)
+            const userIdPart = user.id.toString().padStart(4, '0').slice(-4);
+            const randomPart = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+            const cardNumber = `${userIdPart}${randomPart}`;
+            const nfcId = cardNumber; // NFC ID = card number (10 digit desimal)
             await pool.query(
                 'INSERT INTO member_cards (user_id, card_number, nfc_id, is_active) VALUES (?, ?, ?, TRUE)',
                 [user.id, cardNumber, nfcId]
