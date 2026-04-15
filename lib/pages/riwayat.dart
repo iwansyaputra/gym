@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/api_service.dart';
+import '../services/payment_service.dart';
 
 class RiwayatPage extends StatefulWidget {
   const RiwayatPage({super.key});
@@ -22,7 +22,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
   Future<void> _loadTransactions() async {
     setState(() => _isLoading = true);
 
-    final result = await ApiService.getTransactions();
+    final result = await PaymentService.getPaymentHistory();
 
     if (mounted) {
       setState(() {
@@ -36,12 +36,15 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
   String _formatCurrency(dynamic amount) {
     try {
+      final numericAmount = amount is num
+          ? amount
+          : double.parse(amount?.toString() ?? '0');
       final formatter = NumberFormat.currency(
         locale: 'id_ID',
         symbol: 'Rp ',
         decimalDigits: 0,
       );
-      return formatter.format(amount);
+      return formatter.format(numericAmount);
     } catch (e) {
       return 'Rp $amount';
     }
@@ -108,7 +111,12 @@ class _RiwayatPageState extends State<RiwayatPage> {
                       padding: const EdgeInsets.all(16),
                       itemCount: _transactions.length,
                       itemBuilder: (context, index) {
-                        final transaction = _transactions[index];
+                        final raw = _transactions[index];
+                        if (raw is! Map) {
+                          return const SizedBox.shrink();
+                        }
+
+                        final transaction = Map<String, dynamic>.from(raw);
                         return _buildRiwayatCard(transaction);
                       },
                     ),
@@ -178,7 +186,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      transaction['paket_nama'] ?? 'Membership',
+                      transaction['paket'] ?? 'Membership',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -200,7 +208,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    _formatCurrency(transaction['total_harga']),
+                    _formatCurrency(transaction['jumlah']),
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,

@@ -16,7 +16,7 @@ class ApiConfig {
   // 📱 KONFIGURASI IP (Pilih salah satu):
 
   // Opsi 1: IP Saat Ini (Ganti sesuai ipconfig)
-  static const String _currentIP = '192.168.25.162'; // ✅ IP WiFi Aktif (ipconfig)
+  static const String _currentIP = '192.168.1.2'; // ✅ IP WiFi Aktif (ipconfig)
 
   // HOSTING (Tidak Aktif - Error 503)
   // static const String _currentIP = 'https://www.bahariinn.com/gym';
@@ -80,6 +80,9 @@ class ApiConfig {
   /// Endpoint untuk mendapatkan informasi membership
   static const String membershipInfo = '/membership/info';
 
+  /// Endpoint untuk mendapatkan paket membership
+  static const String membershipPackages = '/membership/packages';
+
   /// Endpoint untuk mendapatkan history membership
   static const String membershipHistory = '/membership/history';
 
@@ -99,10 +102,10 @@ class ApiConfig {
 
   // ==================== TRANSACTION ENDPOINTS ====================
   /// Endpoint untuk mendapatkan history transaksi
-  static const String transactions = '/transactions';
+  static const String transactions = '/transactions/history';
 
   /// Endpoint untuk membuat transaksi pembayaran baru
-  static const String createTransaction = '/transactions';
+  static const String createTransaction = '/transactions/create';
 
   // ==================== HTTP HEADERS ====================
 

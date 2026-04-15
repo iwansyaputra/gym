@@ -6,6 +6,7 @@ import 'card.dart';
 import 'riwayat.dart';
 import 'akun.dart';
 import 'check_in_nfc_page.dart';
+import 'membership_packages_page.dart';
 
 /// Halaman Beranda/Dashboard - Halaman utama setelah login
 /// Menampilkan: Profile user, membership status, check-in option, riwayat transaksi singkat
@@ -276,6 +277,32 @@ class _BerandaPageState extends State<BerandaPage> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          if (sisaHari <= 5) const SizedBox(height: 12),
+          if (sisaHari <= 5)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MembershipPackagesPage(),
+                    ),
+                  );
+
+                  if (result == true && mounted) {
+                    await _loadData();
+                  }
+                },
+                icon: const Icon(Icons.payment),
+                label: const Text('Perpanjang Membership'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE26D88),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
             ),
         ],

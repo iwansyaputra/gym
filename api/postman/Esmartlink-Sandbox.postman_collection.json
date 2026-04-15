@@ -1,0 +1,247 @@
+{
+  "info": {
+    "_postman_id": "b1c2f570-2a73-4f7b-a2fd-9e881f7ea001",
+    "name": "Esmartlink Sandbox",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection untuk testing endpoint E-Smartlink sesuai Dokumen-Integrasi-Esmartlink.md"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      {
+        "key": "username",
+        "value": "{{username}}",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "{{password}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://payment-service-sbx.pakar-digital.com"
+    },
+    {
+      "key": "username",
+      "value": "replace_with_esmartlink_username"
+    },
+    {
+      "key": "password",
+      "value": "replace_with_esmartlink_password"
+    },
+    {
+      "key": "channel",
+      "value": "VA_CIMB"
+    },
+    {
+      "key": "payment_mode",
+      "value": "CLOSE"
+    },
+    {
+      "key": "callback_url",
+      "value": "https://example.com/callback"
+    },
+    {
+      "key": "success_redirect_url",
+      "value": "https://example.com/success"
+    },
+    {
+      "key": "failed_redirect_url",
+      "value": "https://example.com/failed"
+    },
+    {
+      "key": "return_url",
+      "value": "https://example.com/return"
+    },
+    {
+      "key": "order_id",
+      "value": ""
+    },
+    {
+      "key": "transaction_id",
+      "value": ""
+    },
+    {
+      "key": "payment_code",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1) Create Order - payment-page",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const ts = Date.now().toString();",
+              "pm.collectionVariables.set('order_id', `TEST-${ts}`);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP status is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const data = pm.response.json();",
+              "if (data && data.data) {",
+              "    if (data.data.transaction_id) pm.collectionVariables.set('transaction_id', data.data.transaction_id);",
+              "    if (data.data.payment_url) pm.collectionVariables.set('payment_url', data.data.payment_url);",
+              "}",
+              "",
+              "pm.test('Gateway status success', function () {",
+              "    pm.expect((data.status || '').toLowerCase()).to.eql('success');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"order_id\": \"{{order_id}}\",\n  \"amount\": 10000,\n  \"description\": \"Test payment-page via Postman\",\n  \"customer\": {\n    \"name\": \"Postman Tester\",\n    \"email\": \"postman.tester@example.com\",\n    \"phone\": \"081234567890\"\n  },\n  \"item\": [\n    {\n      \"name\": \"Membership Test\",\n      \"amount\": 10000,\n      \"qty\": 1\n    }\n  ],\n  \"channel\": [\n    \"{{channel}}\"\n  ],\n  \"type\": \"payment-page\",\n  \"payment_mode\": \"{{payment_mode}}\",\n  \"expired_time\": \"\",\n  \"callback_url\": \"{{callback_url}}\",\n  \"success_redirect_url\": \"{{success_redirect_url}}\",\n  \"failed_redirect_url\": \"{{failed_redirect_url}}\",\n  \"return_url\": \"{{return_url}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/payment/create-order",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "payment",
+            "create-order"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2) Inquiry Order",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP status is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const data = pm.response.json();",
+              "if (data && data.data && data.data.payment_code) {",
+              "    pm.collectionVariables.set('payment_code', data.data.payment_code);",
+              "}",
+              "",
+              "pm.test('Gateway status success', function () {",
+              "    pm.expect((data.status || '').toLowerCase()).to.eql('success');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/payment/inquiry-order/{{transaction_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "payment",
+            "inquiry-order",
+            "{{transaction_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3) Cancel Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/payment/cancel-order/{{transaction_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "payment",
+            "cancel-order",
+            "{{transaction_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4) Virtual Payment (OTC only)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"payment_code\": \"{{payment_code}}\",\n  \"approval\": \"SUCCESS\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/virtual-payment",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "virtual-payment"
+          ]
+        }
+      }
+    }
+  ]
+}
