@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions - GymKu Admin</title>
+    <meta name="description" content="View and manage all gym membership transactions">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="dashboard-page">
+    <!-- Sidebar (same as other pages) -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M20.57 14.86L22 13.43L20.57 12L17 15.57L8.43 7L12 3.43L10.57 2L9.14 3.43L7.71 2L5.57 4.14L4.14 2.71L2.71 4.14L4.14 5.57L2 7.71L3.43 9.14L2 10.57L3.43 12L7 8.43L15.57 17L12 20.57L13.43 22L14.86 20.57L16.29 22L18.43 19.86L19.86 21.29L21.29 19.86L19.86 18.43L22 16.29L20.57 14.86Z"
+                        fill="currentColor" />
+                </svg>
+                <h2>GymKu</h2>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z"
+                        fill="currentColor" />
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="members.html" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M16 11C17.66 11 18.99 9.66 18.99 8C18.99 6.34 17.66 5 16 5C14.34 5 13 6.34 13 8C13 9.66 14.34 11 16 11ZM8 11C9.66 11 10.99 9.66 10.99 8C10.99 6.34 9.66 5 8 5C6.34 5 5 6.34 5 8C5 9.66 6.34 11 8 11ZM8 13C5.67 13 1 14.17 1 16.5V19H15V16.5C15 14.17 10.33 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 13.89 17 15.02 17 16.5V19H23V16.5C23 14.17 18.33 13 16 13Z"
+                        fill="currentColor" />
+                </svg>
+                <span>Member</span>
+            </a>
+            <a href="checkin.html" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V9H19V20Z"
+                        fill="currentColor" />
+                </svg>
+                <span>Check-in</span>
+            </a>
+            <a href="transactions.html" class="nav-item active">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M11.8 10.9C9.53 10.31 8.8 9.7 8.8 8.75C8.8 7.66 9.81 6.9 11.5 6.9C13.28 6.9 13.94 7.75 14 9H16.21C16.14 7.28 15.09 5.7 13 5.19V3H10V5.16C8.06 5.58 6.5 6.84 6.5 8.77C6.5 11.08 8.41 12.23 11.2 12.9C13.7 13.5 14.2 14.38 14.2 15.31C14.2 16 13.71 17.1 11.5 17.1C9.44 17.1 8.63 16.18 8.52 15H6.32C6.44 17.19 8.08 18.42 10 18.83V21H13V18.85C14.95 18.48 16.5 17.35 16.5 15.3C16.5 12.46 14.07 11.49 11.8 10.9Z"
+                        fill="currentColor" />
+                </svg>
+                <span>Transaksi</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM9 17H7V10H9V17ZM13 17H11V7H13V17ZM17 17H15V13H17V17Z"
+                        fill="currentColor" />
+                </svg>
+                <span>Laporan</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="btn-logout" id="logoutBtn">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M17 7L15.59 8.41L18.17 11H8V13H18.17L15.59 15.59L17 17L22 12L17 7ZM4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z"
+                        fill="currentColor" />
+                </svg>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <button class="menu-toggle" id="menuToggle">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M3 18H21V16H3V18ZM3 13H21V11H3V13ZM3 6V8H21V6H3Z" fill="currentColor" />
+                </svg>
+            </button>
+
+            <div class="topbar-right">
+                <div class="admin-info">
+                    <div class="admin-details">
+                        <span class="admin-name" id="adminName">Admin</span>
+                        <span class="admin-role">Administrator</span>
+                    </div>
+                    <div class="admin-avatar">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z"
+                                fill="currentColor" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Transactions Content -->
+        <div class="content-wrapper">
+            <div class="page-header">
+                <div>
+                    <h1>Transaksi</h1>
+                    <p class="page-subtitle">Kelola semua transaksi membership</p>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-success">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" fill="currentColor" />
+                        </svg>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-label">Transaksi Berhasil</div>
+                        <div class="summary-value" id="successCount">0</div>
+                    </div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-warning">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z"
+                                fill="currentColor" />
+                        </svg>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-label">Pending</div>
+                        <div class="summary-value" id="pendingCount">0</div>
+                    </div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-danger">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z"
+                                fill="currentColor" />
+                        </svg>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-label">Gagal</div>
+                        <div class="summary-value" id="failedCount">0</div>
+                    </div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-primary">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M11.8 10.9C9.53 10.31 8.8 9.7 8.8 8.75C8.8 7.66 9.81 6.9 11.5 6.9C13.28 6.9 13.94 7.75 14 9H16.21C16.14 7.28 15.09 5.7 13 5.19V3H10V5.16C8.06 5.58 6.5 6.84 6.5 8.77C6.5 11.08 8.41 12.23 11.2 12.9C13.7 13.5 14.2 14.38 14.2 15.31C14.2 16 13.71 17.1 11.5 17.1C9.44 17.1 8.63 16.18 8.52 15H6.32C6.44 17.19 8.08 18.42 10 18.83V21H13V18.85C14.95 18.48 16.5 17.35 16.5 15.3C16.5 12.46 14.07 11.49 11.8 10.9Z"
+                                fill="currentColor" />
+                        </svg>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-label">Total Pendapatan</div>
+                        <div class="summary-value" id="totalRevenue">Rp 0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z"
+                            fill="currentColor" />
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="Cari transaksi...">
+                </div>
+
+                <div class="filter-group">
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">Semua Status</option>
+                        <option value="success">Berhasil</option>
+                        <option value="pending">Pending</option>
+                        <option value="failed">Gagal</option>
+                    </select>
+
+                    <input type="date" id="startDate" class="filter-input">
+                    <span>-</span>
+                    <input type="date" id="endDate" class="filter-input">
+
+                    <button class="btn-secondary" id="exportBtn">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M19 12V19H5V12H3V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V12H19ZM13 12.67L15.59 10.09L17 11.5L12 16.5L7 11.5L8.41 10.09L11 12.67V3H13V12.67Z"
+                                fill="currentColor" />
+                        </svg>
+                        Export
+                    </button>
+                </div>
+            </div>
+
+            <!-- Transactions Table -->
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="data-table" id="transactionsTable">
+                        <thead>
+                            <tr>
+                                <th>ID Transaksi</th>
+                                <th>Tanggal</th>
+                                <th>Member</th>
+                                <th>Paket</th>
+                                <th>Jumlah</th>
+                                <th>Metode</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsTableBody">
+                            <!-- Loading skeleton -->
+                            <tr class="skeleton-row">
+                                <td>
+                                    <div class="skeleton-text"></div>
+                                </td>
+                                <td>
+                                    <div class="skeleton-text"></div>
+                                </td>
+                                <td>
+                                    <div class="skeleton-text"></div>
+                                </td>
+                                <td>
+                                    <div class="skeleton-text"></div>
+                                </td>
+                                <td>
+                                    <div class="skeleton-text"></div>
+                                </td>
+                                <td>
+                                    <div class="skeleton-text"></div>
+                                </td>
+                                <td>
+                                    <div class="skeleton-text"></div>
+                                </td>
+                                <td>
+                                    <div class="skeleton-text"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination">
+                    <button class="pagination-btn" id="prevPage" disabled>
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M15.41 7.41L14 6L8 12L14 18L15.41 16.59L10.83 12L15.41 7.41Z"
+                                fill="currentColor" />
+                        </svg>
+                        Sebelumnya
+                    </button>
+                    <div class="pagination-info">
+                        <span id="pageInfo">Halaman 1 dari 1</span>
+                    </div>
+                    <button class="pagination-btn" id="nextPage">
+                        Selanjutnya
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M8.59 16.59L10 18L16 12L10 6L8.59 7.41L13.17 12L8.59 16.59Z" fill="currentColor" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Transaction Detail Modal -->
+    <div class="modal" id="detailModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <h2>Detail Transaksi</h2>
+                <button class="modal-close" id="closeDetailModal">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z"
+                            fill="currentColor" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="detail-grid">
+                    <div class="detail-row">
+                        <span class="detail-label">ID Transaksi</span>
+                        <span class="detail-value" id="detailId">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Tanggal & Waktu</span>
+                        <span class="detail-value" id="detailDate">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Nama Member</span>
+                        <span class="detail-value" id="detailMemberName">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Email</span>
+                        <span class="detail-value" id="detailMemberEmail">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Paket</span>
+                        <span class="detail-value" id="detailPackage">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Durasi</span>
+                        <span class="detail-value" id="detailDuration">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Jumlah</span>
+                        <span class="detail-value detail-amount" id="detailAmount">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Metode Pembayaran</span>
+                        <span class="detail-value" id="detailMethod">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status</span>
+                        <span class="badge" id="detailStatus">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-secondary" id="closeDetailBtn">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js?v=20260407"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/transactions.js"></script>
+</body>
+
+</html>

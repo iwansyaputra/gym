@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Connection - GymKu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status.loading {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .status.success {
+            background: #28a745;
+            color: white;
+        }
+
+        .status.error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .info-box strong {
+            color: #1976d2;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 Test Koneksi API</h1>
+        <p class="subtitle">Halaman untuk testing koneksi ke backend API GymKu</p>
+
+        <div class="info-box">
+            <strong>API URL:</strong> <span id="apiUrl">Loading...</span>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                <span>1. Test Health Check</span>
+                <span class="status loading" id="healthStatus">Belum ditest</span>
+            </div>
+            <button class="btn" onclick="testHealth()">Test Health</button>
+            <div class="result" id="healthResult" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                <span>2. Test Login</span>
+                <span class="status loading" id="loginStatus">Belum ditest</span>
+            </div>
+            <button class="btn" onclick="testLogin()">Test Login Admin</button>
+            <div class="result" id="loginResult" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">
+                <span>3. Buka Admin Web</span>
+            </div>
+            <button class="btn" onclick="window.location.href='index.html'">Buka Login Admin</button>
+            <button class="btn" style="background: #28a745;" onclick="window.location.href='dashboard.html'">Buka
+                Dashboard</button>
+        </div>
+    </div>
+
+    <script src="js/config.js?v=20260407"></script>
+    <script>
+        // Display API URL
+        document.getElementById('apiUrl').textContent = API_CONFIG.BASE_URL;
+
+        async function testHealth() {
+            const statusEl = document.getElementById('healthStatus');
+            statusEl.className = 'status loading';
+            statusEl.innerHTML = '<span class="spinner"></span> Testing...';
+
+            const resultEl = document.getElementById('healthResult');
+            resultEl.style.display = 'block';
+            resultEl.textContent = 'Menghubungi server...';
+
+            try {
+                const response = await fetch(API_CONFIG.BASE_URL.replace('/api', '') + '/health');
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = '✓ Sukses';
+                    resultEl.textContent = JSON.stringify(data, null, 2);
+                    resultEl.style.background = '#d4edda';
+                    resultEl.style.color = '#155724';
+                } else {
+                    throw new Error('Health check failed');
+                }
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = '✗ Gagal';
+                resultEl.textContent = `Error: ${error.message}\n\nPastikan:\n1. Backend API sudah running (npm start)\n2. IP sudah benar: ${API_CONFIG.BASE_URL}\n3. Firewall tidak memblokir port 3000`;
+                resultEl.style.background = '#f8d7da';
+                resultEl.style.color = '#721c24';
+            }
+        }
+
+        async function testLogin() {
+            const statusEl = document.getElementById('loginStatus');
+            statusEl.className = 'status loading';
+            statusEl.innerHTML = '<span class="spinner"></span> Testing...';
+
+            const resultEl = document.getElementById('loginResult');
+            resultEl.style.display = 'block';
+            resultEl.textContent = 'Mencoba login dengan:\nEmail: admin@gymku.com\nPassword: admin123';
+
+            try {
+                const response = await fetch(API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.LOGIN, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@gymku.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = '✓ Sukses';
+                    resultEl.textContent = `Login berhasil!\n\nData User:\nNama: ${data.data.user.name}\nEmail: ${data.data.user.email}\nRole: ${data.data.user.role}\n\nToken tersedia ✓`;
+                    resultEl.style.background = '#d4edda';
+                    resultEl.style.color = '#155724';
+                } else {
+                    throw new Error(data.message || 'Login failed');
+                }
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = '✗ Gagal';
+                resultEl.textContent = `Error: ${error.message}\n\nKemungkinan masalah:\n1. Database belum diimport\n2. Akun admin belum dibuat\n3. Backend API error`;
+                resultEl.style.background = '#f8d7da';
+                resultEl.style.color = '#721c24';
+            }
+        }
+
+        // Auto test on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testHealth();
+            }, 500);
+        });
+    </script>
+</body>
+
+</html>
