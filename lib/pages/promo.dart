@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'membership_packages_page.dart';
 
 class PromoPage extends StatefulWidget {
   const PromoPage({super.key});
@@ -283,9 +284,14 @@ class _PromoPageState extends State<PromoPage> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           Navigator.pop(context);
-                          // Navigate to payment page
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const MembershipPackagesPage(),
+                            ),
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFE26D88),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
-import 'payment.dart';
 import '../services/auth_storage.dart';
+import 'membership_packages_page.dart';
 
 class AkunPage extends StatefulWidget {
   const AkunPage({super.key});
-
+  
   @override
   State<AkunPage> createState() => _AkunPageState();
 }
@@ -111,16 +111,19 @@ class _AkunPageState extends State<AkunPage> {
 
               _menuItem(
                 icon: Icons.payment,
-                title: "Payment",
-                subtitle: "Lanjutkan pembayaran member",
-                onTap: () {
-                  Navigator.push(
+                title: "Membership",
+                subtitle: "Beli / perpanjang membership",
+                onTap: () async {
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          const PaymentPage(paket: 'bulanan', harga: 185000),
+                      builder: (context) => const MembershipPackagesPage(),
                     ),
                   );
+
+                  if (result == true && mounted) {
+                    await _loadProfile();
+                  }
                 },
               ),
 
@@ -141,7 +144,7 @@ class _AkunPageState extends State<AkunPage> {
 
     String nama = user?['nama'] ?? 'User';
     String membershipType = membership != null
-        ? membership['paket_nama']
+        ? (membership['paket'] ?? membership['paket_nama'] ?? 'Member Aktif')
         : 'Belum ada membership';
     return Container(
       padding: const EdgeInsets.all(22),

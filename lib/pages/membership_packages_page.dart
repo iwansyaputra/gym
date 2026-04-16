@@ -1,8 +1,120 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import 'payment.dart';
 
-class MembershipPackagesPage extends StatelessWidget {
+class MembershipPackagesPage extends StatefulWidget {
   const MembershipPackagesPage({super.key});
+
+  @override
+  State<MembershipPackagesPage> createState() => _MembershipPackagesPageState();
+}
+
+class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _packages = const [
+    {
+      'slug': 'bulanan',
+      'title': 'Bulanan',
+      'price': 250000,
+      'duration': '30 Hari',
+      'features': [
+        'Akses semua alat gym',
+        'Akses ruang cardio',
+        'Loker pribadi',
+        'Shower & toilet',
+        'Free WiFi',
+      ],
+      'color': 0xFF00D4FF,
+      'isPopular': false,
+      'discount': null,
+    },
+    {
+      'slug': 'tahunan',
+      'title': 'Tahunan',
+      'price': 2500000,
+      'duration': '365 Hari',
+      'features': [
+        'Semua benefit Bulanan',
+        'Free 1x personal training',
+        'Diskon 20% merchandise',
+        'Priority booking class',
+        'Guest pass 2x/bulan',
+      ],
+      'color': 0xFFFFD700,
+      'isPopular': true,
+      'discount': '2 bulan gratis!',
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPackages();
+  }
+
+  Future<void> _loadPackages() async {
+    final result = await ApiService.getMembershipPackages();
+
+    if (!mounted) return;
+
+    if (result['success'] == true && result['data'] is List) {
+      final rawList = (result['data'] as List).cast<dynamic>();
+      final parsed = <Map<String, dynamic>>[];
+
+      for (final item in rawList) {
+        if (item is! Map) continue;
+        final data = Map<String, dynamic>.from(item as Map);
+        final nama = (data['nama'] ?? '').toString().toLowerCase();
+
+        if (nama.contains('bulanan')) {
+          parsed.add({
+            'slug': 'bulanan',
+            'title': 'Bulanan',
+            'price': _asInt(data['harga']) ?? 250000,
+            'duration': '${_asInt(data['durasi']) ?? 30} Hari',
+            'features': _toStringList(data['fitur']),
+            'color': 0xFF00D4FF,
+            'isPopular': false,
+            'discount': null,
+          });
+        } else if (nama.contains('tahunan')) {
+          parsed.add({
+            'slug': 'tahunan',
+            'title': 'Tahunan',
+            'price': _asInt(data['harga']) ?? 2500000,
+            'duration': '${_asInt(data['durasi']) ?? 365} Hari',
+            'features': _toStringList(data['fitur']),
+            'color': 0xFFFFD700,
+            'isPopular': true,
+            'discount': '2 bulan gratis!',
+          });
+        }
+      }
+
+      if (parsed.isNotEmpty) {
+        parsed.sort(
+          (a, b) => (a['slug'] == 'bulanan' ? 0 : 1).compareTo(
+            b['slug'] == 'bulanan' ? 0 : 1,
+          ),
+        );
+        _packages = parsed;
+      }
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  int? _asInt(dynamic value) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  List<String> _toStringList(dynamic value) {
+    if (value is! List) return const [];
+    return value.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,66 +133,50 @@ class MembershipPackagesPage extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Pilih Paket Membership',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Dapatkan akses penuh ke semua fasilitas gym',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-                const SizedBox(height: 32),
-                Expanded(
-                  child: ListView(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildPackageCard(
-                        context: context,
-                        title: 'Bulanan',
-                        price: 250000,
-                        duration: '30 Hari',
-                        features: [
-                          'Akses semua alat gym',
-                          'Akses ruang cardio',
-                          'Loker pribadi',
-                          'Shower & toilet',
-                          'Free WiFi',
-                        ],
-                        color: const Color(0xFF00D4FF),
-                        isPopular: false,
+                      const Text(
+                        'Pilih Paket Membership',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                      const SizedBox(height: 20),
-                      _buildPackageCard(
-                        context: context,
-                        title: 'Tahunan',
-                        price: 2500000,
-                        duration: '365 Hari',
-                        features: [
-                          'Semua benefit Bulanan',
-                          'Free 1x personal training',
-                          'Diskon 20% merchandise',
-                          'Priority booking class',
-                          'Guest pass 2x/bulan',
-                        ],
-                        color: const Color(0xFFFFD700),
-                        isPopular: true,
-                        discount: '2 bulan gratis!',
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Dapatkan akses penuh ke semua fasilitas gym',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 32),
+                      Expanded(
+                        child: ListView.separated(
+                          itemCount: _packages.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 20),
+                          itemBuilder: (context, index) {
+                            final item = _packages[index];
+                            return _buildPackageCard(
+                              context: context,
+                              title: item['title'] as String,
+                              price: item['price'] as int,
+                              duration: item['duration'] as String,
+                              slug: item['slug'] as String,
+                              features: (item['features'] as List<String>),
+                              color: Color(item['color'] as int),
+                              isPopular: item['isPopular'] as bool,
+                              discount: item['discount'] as String?,
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
         ),
       ),
     );
@@ -89,6 +185,7 @@ class MembershipPackagesPage extends StatelessWidget {
   Widget _buildPackageCard({
     required BuildContext context,
     required String title,
+    required String slug,
     required int price,
     required String duration,
     required List<String> features,
@@ -209,8 +306,7 @@ class MembershipPackagesPage extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () =>
-                        _handlePayment(context, title.toLowerCase(), price),
+                    onPressed: () => _handlePayment(context, slug, price),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: color,
                       foregroundColor: Colors.black,
@@ -249,7 +345,7 @@ class MembershipPackagesPage extends StatelessWidget {
                   ),
                 ),
                 child: const Text(
-                  '⭐ POPULER',
+                  'POPULER',
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 12,
@@ -275,7 +371,6 @@ class MembershipPackagesPage extends StatelessWidget {
     String paket,
     int harga,
   ) async {
-    // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -306,7 +401,6 @@ class MembershipPackagesPage extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      // Navigate to payment page
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -315,7 +409,6 @@ class MembershipPackagesPage extends StatelessWidget {
       );
 
       if (result == true && context.mounted) {
-        // Payment successful
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Pembayaran berhasil! Membership Anda sudah aktif.'),
@@ -324,7 +417,6 @@ class MembershipPackagesPage extends StatelessWidget {
           ),
         );
 
-        // Return to previous page
         Navigator.pop(context, true);
       }
     }

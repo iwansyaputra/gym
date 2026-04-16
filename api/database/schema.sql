@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(255) NOT NULL,
   foto_profil VARCHAR(255) DEFAULT NULL,
   is_verified BOOLEAN DEFAULT FALSE,
+  role VARCHAR(20) DEFAULT 'user',
   alamat VARCHAR(255) DEFAULT NULL,
   jenis_kelamin VARCHAR(20) DEFAULT NULL,
   tanggal_lahir DATE DEFAULT NULL,
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   membership_id INT,
+  order_id VARCHAR(100) UNIQUE DEFAULT NULL,
   jenis_transaksi VARCHAR(50) NOT NULL, -- 'membership', 'perpanjangan', 'upgrade'
   jumlah DECIMAL(10, 2) NOT NULL,
   metode_pembayaran VARCHAR(50) NOT NULL, -- 'transfer', 'ewallet', 'cash'

@@ -124,8 +124,8 @@ const startServer = async () => {
             console.log('  POST /api/transactions/confirm  - Confirm payment');
             console.log('  GET  /api/promos                - Get all promos');
             console.log('  GET  /api/promos/:id            - Get promo detail');
-            console.log('  POST /api/payment/create        - Create payment (Midtrans)');
-            console.log('  POST /api/payment/notification  - Midtrans webhook');
+            console.log('  POST /api/payment/create        - Create payment (E-Smartlink)');
+            console.log('  POST /api/payment/notification  - E-Smartlink callback');
             console.log('  GET  /api/payment/status/:id    - Check payment status');
             console.log('  GET  /api/payment/history       - Get payment history');
             console.log('='.repeat(50));

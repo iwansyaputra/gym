@@ -4,7 +4,7 @@ import 'api_config.dart';
 import 'auth_storage.dart';
 
 class PaymentService {
-  // Create payment transaction
+  // Create payment transaction via backend (E-Smartlink)
   static Future<Map<String, dynamic>> createPayment({
     required String paket,
     required int harga,

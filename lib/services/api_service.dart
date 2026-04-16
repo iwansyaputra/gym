@@ -511,6 +511,37 @@ class ApiService {
     }
   }
 
+  /// Ambil daftar paket membership yang tersedia
+  static Future<Map<String, dynamic>> getMembershipPackages() async {
+    try {
+      final token = await AuthStorage.getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'Token tidak ditemukan'};
+      }
+
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.membershipPackages}'),
+        headers: ApiConfig.headersWithAuth(token),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? []};
+      }
+
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal mengambil paket membership',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan: ${e.toString()}',
+      };
+    }
+  }
+
   /// Ambil riwayat semua membership yang pernah user miliki
   /// Memerlukan token JWT
   /// Output: list riwayat membership dengan status aktif/expired
@@ -781,8 +812,14 @@ class ApiService {
 
       // Jika request berhasil (status 200)
       if (response.statusCode == 200) {
-        // Return list transaksi atau empty array jika tidak ada
-        return {'success': true, 'data': data['data'] ?? []};
+        final payload = data['data'];
+        if (payload is List) {
+          return {'success': true, 'data': payload};
+        }
+        if (payload is Map<String, dynamic> && payload['transactions'] is List) {
+          return {'success': true, 'data': payload['transactions']};
+        }
+        return {'success': true, 'data': []};
       } else {
         // Jika gagal
         return {
