@@ -89,7 +89,13 @@ class ApiClient {
 
     // Auth endpoints
     async login(email, password) {
-        return this.post(API_CONFIG.ENDPOINTS.LOGIN, { email, password });
+        const endpoint = API_CONFIG.ENDPOINTS.LOGIN;
+        const fullUrl = this.baseUrl + endpoint;
+        console.log('🔐 Login attempt:');
+        console.log('   Email:', email);
+        console.log('   API URL:', fullUrl);
+        console.log('   Base URL:', this.baseUrl);
+        return this.post(endpoint, { email, password });
     }
 
     async register(userData) {
@@ -109,11 +115,19 @@ class ApiClient {
         return this.get('/admin/users', params);
     }
 
+    async updateUser(userId, userData) {
+        return this.put(`/admin/users/${userId}`, userData);
+    }
+
     async deleteUser(userId) {
         return this.delete(`/admin/users/${userId}`);
     }
 
     // Check-in endpoints
+    async lookupMember(nfcId) {
+        return this.post('/check-in/lookup', { nfc_id: nfcId });
+    }
+
     async checkInNFC(nfcId) {
         return this.post(API_CONFIG.ENDPOINTS.CHECKIN_NFC, { nfc_id: nfcId });
     }
@@ -133,6 +147,11 @@ class ApiClient {
 
     async getMembershipPackages() {
         return this.get(API_CONFIG.ENDPOINTS.MEMBERSHIP_PACKAGES);
+    }
+
+    async updateMembershipPackage(packageId, data) {
+        // Asumsi backend memiliki endpoint PUT /membership/packages/:id atau /admin/packages/:id
+        return this.put(`${API_CONFIG.ENDPOINTS.MEMBERSHIP_PACKAGES}/${packageId}`, data);
     }
 
     async extendMembership(packageId) {

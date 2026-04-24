@@ -1,0 +1,52 @@
+[
+    {
+        "id": "1",
+        "slug": "bulanan",
+        "nama": "Paket Bulanan",
+        "durasi": 30,
+        "harga": 180000,
+        "deskripsi": "Akses gym selama 1 bulan",
+        "fitur": [
+            "Akses semua alat gym",
+            "Loker gratis"
+        ]
+    },
+    {
+        "id": "2",
+        "slug": "3bulan",
+        "nama": "Paket 3 Bulan",
+        "durasi": 90,
+        "harga": 472500,
+        "deskripsi": "Akses gym selama 3 bulan",
+        "fitur": [
+            "Akses semua alat gym",
+            "Konsultasi trainer 3x",
+            "Loker gratis",
+            "Diskon 10% (Promo)"
+        ]
+    },
+    {
+        "id": "3",
+        "slug": "6bulan",
+        "nama": "Paket 6 Bulan",
+        "durasi": 180,
+        "harga": 1200000,
+        "deskripsi": "Akses gym selama 6 bulan",
+        "fitur": [
+            "Akses semua alat gym",
+            "Konsultasi trainer 6x"
+        ]
+    },
+    {
+        "id": "4",
+        "slug": "tahunan",
+        "nama": "Paket Tahunan",
+        "durasi": 365,
+        "harga": 2500000,
+        "deskripsi": "Akses gym selama 1 tahun",
+        "fitur": [
+            "Akses semua alat gym",
+            "Konsultasi trainer 12x"
+        ]
+    }
+]

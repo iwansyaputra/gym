@@ -37,26 +37,52 @@ class _PromoPageState extends State<PromoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8CEDA),
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE26D88),
-        title: const Text("Promo"),
+        backgroundColor: const Color(0xFF0A0A0A),
+        foregroundColor: Colors.white,
+        centerTitle: true,
+        elevation: 0,
+        title: const Text(
+          "Promo Menarik",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadPromos),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadPromos,
+          ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)))
           : RefreshIndicator(
+              color: const Color(0xFF2196F3),
+              backgroundColor: const Color(0xFF1A1A1A),
               onRefresh: _loadPromos,
               child: _promos.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Tidak ada promo tersedia',
-                        style: TextStyle(fontSize: 16),
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.local_offer_outlined,
+                            size: 80,
+                            color: Colors.grey.withOpacity(0.3),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Belum ada promo tersedia',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        ],
                       ),
                     )
                   : ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.all(20),
                       itemCount: _promos.length,
                       itemBuilder: (context, index) {
@@ -72,12 +98,13 @@ class _PromoPageState extends State<PromoPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
             offset: const Offset(0, 5),
           ),
         ],
@@ -86,83 +113,92 @@ class _PromoPageState extends State<PromoPage> {
         onTap: () => _showPromoDetail(promo),
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Promo Title
               Row(
                 children: [
-                  const Icon(
-                    Icons.local_offer,
-                    color: Color(0xFFE26D88),
-                    size: 28,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.local_offer,
+                      color: Color(0xFF2196F3),
+                      size: 24,
+                    ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       promo['judul'] ?? '',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFE26D88),
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // Promo Description
               Text(
                 promo['deskripsi'] ?? '',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // Discount Badge
-              if (promo['diskon'] != null && promo['diskon'] > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE26D88),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Diskon ${promo['diskon']}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '${promo['tanggal_mulai']} s/d ${promo['tanggal_berakhir']}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-
-              const SizedBox(height: 8),
-
-              // Promo Period
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 14,
-                    color: Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Berlaku: ${promo['tanggal_mulai']} - ${promo['tanggal_berakhir']}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
+                  if (promo['diskon'] != null && promo['diskon'] > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2196F3).withOpacity(0.15),
+                        border: Border.all(color: const Color(0xFF2196F3).withOpacity(0.5)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Diskon ${promo['diskon']}%',
+                        style: const TextStyle(
+                          color: Color(0xFF2196F3),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -178,9 +214,9 @@ class _PromoPageState extends State<PromoPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
+        height: MediaQuery.of(context).size.height * 0.75,
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: Color(0xFF121212),
           borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
         ),
         child: Column(
@@ -191,7 +227,7 @@ class _PromoPageState extends State<PromoPage> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Colors.grey[800],
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -202,18 +238,16 @@ class _PromoPageState extends State<PromoPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     Text(
                       promo['judul'] ?? '',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFE26D88),
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 16),
 
-                    // Discount Badge
                     if (promo['diskon'] != null && promo['diskon'] > 0)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -221,68 +255,64 @@ class _PromoPageState extends State<PromoPage> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE26D88),
-                          borderRadius: BorderRadius.circular(20),
+                          color: const Color(0xFF2196F3).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF2196F3)),
                         ),
                         child: Text(
                           'Diskon ${promo['diskon']}%',
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: Color(0xFF2196F3),
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
                       ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
-                    // Description
                     const Text(
                       'Deskripsi',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
+                        color: Colors.grey,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       promo['deskripsi'] ?? '',
-                      style: const TextStyle(fontSize: 15),
+                      style: const TextStyle(fontSize: 15, color: Colors.white, height: 1.5),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
                     // Period
                     _buildDetailRow(
                       'Periode',
-                      '${promo['tanggal_mulai']} - ${promo['tanggal_berakhir']}',
+                      '${promo['tanggal_mulai']} s/d ${promo['tanggal_berakhir']}',
                     ),
 
-                    // Terms & Conditions
-                    if (promo['syarat_ketentuan'] != null)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Syarat & Ketentuan',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            promo['syarat_ketentuan'],
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ],
+                    if (promo['syarat_ketentuan'] != null) ...[
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Syarat & Ketentuan',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        promo['syarat_ketentuan'],
+                        style: const TextStyle(fontSize: 14, color: Colors.white, height: 1.5),
+                      ),
+                    ],
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
 
-                    // Action Button
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
+                      height: 56,
                       child: ElevatedButton(
                         onPressed: () async {
                           Navigator.pop(context);
@@ -294,7 +324,7 @@ class _PromoPageState extends State<PromoPage> {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE26D88),
+                          backgroundColor: const Color(0xFF2196F3),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -329,11 +359,23 @@ class _PromoPageState extends State<PromoPage> {
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.grey,
+              ),
             ),
           ),
-          const Text(': '),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+          const Text(': ', style: TextStyle(color: Colors.grey)),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ],
       ),
     );

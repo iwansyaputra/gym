@@ -1,9 +1,25 @@
 const { pool } = require('../config/database');
 const { esmartlinkRequest, verifyCallbackSignature } = require('../config/esmartlink');
+const fs = require('fs');
+const path = require('path');
 
-const membershipPackages = {
-    bulanan: { months: 1, price: 250000 },
-    tahunan: { years: 1, price: 2500000 }
+const getMembershipPackages = () => {
+    try {
+        const pkgPath = path.join(__dirname, '../config/packages.json');
+        const data = fs.readFileSync(pkgPath, 'utf8');
+        const list = JSON.parse(data);
+        const map = {};
+        for (const p of list) {
+            map[p.slug] = { durasi: p.durasi, price: p.harga, nama: p.nama };
+        }
+        return map;
+    } catch (e) {
+        console.error('Error reading packages in paymentController:', e);
+        return {
+            bulanan: { durasi: 30, price: 175000, nama: 'Paket Bulanan' },
+            '3bulan': { durasi: 90, price: 472500, nama: 'Paket 3 Bulan' }
+        };
+    }
 };
 
 const mapGatewayStatusToLocal = (status = '') => {
@@ -69,11 +85,12 @@ const createPayment = async (req, res) => {
         }
 
         const normalizedPaket = String(paket).toLowerCase();
-        const selectedPackage = membershipPackages[normalizedPaket];
+        const packagesMap = getMembershipPackages();
+        const selectedPackage = packagesMap[normalizedPaket];
         if (!selectedPackage) {
             return res.status(400).json({
                 success: false,
-                message: 'Paket tidak valid. Gunakan bulanan atau tahunan.'
+                message: 'Paket tidak valid. Gunakan nama paket yang tersedia (bulanan, 3bulan, tahunan, dll).'
             });
         }
 
@@ -104,14 +121,23 @@ const createPayment = async (req, res) => {
 
         const user = users[0];
         const orderId = `GYM-${Date.now()}-${userId}`;
-        const tanggalMulai = new Date();
-        const tanggalBerakhir = new Date();
+        // Retrieve current active membership to accumulate correctly
+        const [currentMemberships] = await connection.query(
+            'SELECT * FROM memberships WHERE user_id = ? AND status IN ("active", "pending") ORDER BY tanggal_berakhir DESC LIMIT 1',
+            [userId]
+        );
 
-        if (selectedPackage.months) {
-            tanggalBerakhir.setMonth(tanggalBerakhir.getMonth() + selectedPackage.months);
-        } else if (selectedPackage.years) {
-            tanggalBerakhir.setFullYear(tanggalBerakhir.getFullYear() + selectedPackage.years);
+        let tanggalMulai = new Date();
+        if (currentMemberships.length > 0) {
+            const currentEnd = new Date(currentMemberships[0].tanggal_berakhir);
+            if (currentEnd > tanggalMulai) {
+                // Member masih aktif, mulai dari masa aktif terakhir
+                tanggalMulai = new Date(currentEnd);
+            }
         }
+
+        const tanggalBerakhir = new Date(tanggalMulai);
+        tanggalBerakhir.setDate(tanggalBerakhir.getDate() + selectedPackage.durasi);
 
         await connection.beginTransaction();
         transactionStarted = true;

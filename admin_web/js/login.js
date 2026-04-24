@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rememberMeCheckbox = document.getElementById('rememberMe');
     const togglePasswordBtn = document.getElementById('togglePassword');
     const loginBtn = document.getElementById('loginBtn');
-    const errorMessage = document.getElementById('errorMessage');
+    const errorMessage = document.getElementById('loginError');
 
     // Toggle password visibility
     if (togglePasswordBtn) {

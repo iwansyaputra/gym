@@ -1,6 +1,44 @@
 const { pool } = require('../config/database');
 const moment = require('moment');
 
+// Lookup member info by NFC ID or User ID (NO check-in recorded)
+const lookupMember = async (req, res) => {
+    try {
+        const { nfc_id } = req.body;
+        if (!nfc_id) return res.status(400).json({ success: false, message: 'NFC ID harus diisi' });
+
+        let [cards] = await pool.query('SELECT user_id FROM member_cards WHERE nfc_id = ? AND is_active = TRUE', [nfc_id]);
+        let userId;
+        if (cards.length > 0) {
+            userId = cards[0].user_id;
+        } else {
+            const [users] = await pool.query('SELECT id FROM users WHERE id = ?', [nfc_id]);
+            if (users.length > 0) userId = users[0].id;
+            else return res.status(404).json({ success: false, message: 'Kartu member tidak ditemukan / ID tidak valid' });
+        }
+
+        const [users] = await pool.query(
+            `SELECT u.id, u.nama as name, u.email, u.hp as phone, mc.nfc_id,
+                m.paket as package_name, m.tanggal_berakhir as membership_expiry, m.status as membership_status,
+                (SELECT check_in_time FROM check_ins WHERE user_id = u.id ORDER BY check_in_time DESC LIMIT 1) as last_checkin
+             FROM users u
+             LEFT JOIN member_cards mc ON u.id = mc.user_id
+             LEFT JOIN memberships m ON u.id = m.user_id AND m.status = 'active' AND m.tanggal_berakhir >= CURDATE()
+             WHERE u.id = ? ORDER BY m.tanggal_berakhir DESC LIMIT 1`,
+            [userId]
+        );
+
+        if (!users || users.length === 0) return res.status(404).json({ success: false, message: 'Data member tidak ditemukan' });
+        const member = users[0];
+        const hasActiveMembership = member.membership_expiry && new Date(member.membership_expiry) >= new Date();
+
+        res.json({ success: true, data: { user: member, has_active_membership: hasActiveMembership } });
+    } catch (error) {
+        console.error('Lookup member error:', error);
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server' });
+    }
+};
+
 // Check-in with NFC
 const checkInNFC = async (req, res) => {
     try {
@@ -13,20 +51,28 @@ const checkInNFC = async (req, res) => {
             });
         }
 
-        // Find user by NFC ID
-        const [cards] = await pool.query(
+        // Find user by NFC ID or directly by User ID
+        let [cards] = await pool.query(
             'SELECT user_id FROM member_cards WHERE nfc_id = ? AND is_active = TRUE',
             [nfc_id]
         );
 
-        if (cards.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Kartu member tidak ditemukan atau tidak aktif'
-            });
-        }
+        let userId;
 
-        const userId = cards[0].user_id;
+        if (cards.length > 0) {
+            userId = cards[0].user_id;
+        } else {
+            // Coba cek jika nfc_id yang dikirim adalah user_id dari database
+            const [users] = await pool.query('SELECT id FROM users WHERE id = ?', [nfc_id]);
+            if (users.length > 0) {
+                userId = users[0].id;
+            } else {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Kartu member tidak ditemukan / ID tidak valid'
+                });
+            }
+        }
 
         // Check if user has active membership
         const [memberships] = await pool.query(
@@ -47,15 +93,26 @@ const checkInNFC = async (req, res) => {
             [userId, 'nfc']
         );
 
-        // Get user info
+        // Get full user info & membership stats for UI display
         const [users] = await pool.query(
-            'SELECT nama, email FROM users WHERE id = ?',
+            `SELECT 
+                u.id, 
+                u.nama as name, 
+                u.email, 
+                u.hp as phone,
+                m.paket as package_name,
+                m.tanggal_berakhir as membership_expiry,
+                (SELECT check_in_time FROM check_ins WHERE user_id = u.id ORDER BY check_in_time DESC LIMIT 1 OFFSET 1) as last_checkin
+             FROM users u
+             LEFT JOIN memberships m ON u.id = m.user_id AND m.status = 'active' AND m.tanggal_berakhir >= CURDATE()
+             WHERE u.id = ?
+             ORDER BY m.tanggal_berakhir DESC LIMIT 1`,
             [userId]
         );
 
         res.json({
             success: true,
-            message: 'Check-in berhasil! Selamat berlatih 💪',
+            message: 'Check-in berhasil!',
             data: {
                 user: users[0],
                 check_in_time: moment().format('YYYY-MM-DD HH:mm:ss')
@@ -149,6 +206,7 @@ const getCheckInStats = async (req, res) => {
 };
 
 module.exports = {
+    lookupMember,
     checkInNFC,
     getCheckInHistory,
     getCheckInStats

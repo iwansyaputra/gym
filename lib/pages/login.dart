@@ -1,4 +1,4 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 
@@ -110,16 +110,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.fromARGB(255, 234, 68, 123),
-              Color.fromARGB(255, 234, 68, 123),
-            ],
-          ),
-        ),
+        color: const Color(0xFF0A0A0A),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -130,11 +121,12 @@ class _LoginPageState extends State<LoginPage> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xFF1A1A1A),
                       shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: const Color(0xFF2196F3).withOpacity(0.1),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -143,7 +135,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: const Icon(
                       Icons.fitness_center,
                       size: 60,
-                      color: Color.fromARGB(255, 234, 68, 123),
+                      color: Color(0xFF2196F3),
                     ),
                   ),
 
@@ -153,11 +145,12 @@ class _LoginPageState extends State<LoginPage> {
                   Container(
                     padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xFF1A1A1A),
                       borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withOpacity(0.3),
                           blurRadius: 30,
                           offset: const Offset(0, 15),
                         ),
@@ -173,7 +166,7 @@ class _LoginPageState extends State<LoginPage> {
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -181,7 +174,7 @@ class _LoginPageState extends State<LoginPage> {
                             "Mari lanjutkan perjalanan fitness Anda",
                             style: TextStyle(
                               fontSize: 16,
-                              color: Colors.grey.shade600,
+                              color: Colors.grey.shade400,
                             ),
                           ),
 
@@ -193,9 +186,10 @@ class _LoginPageState extends State<LoginPage> {
                             keyboardType: TextInputType.emailAddress,
                             decoration: InputDecoration(
                               labelText: "Email",
-                              prefixIcon: const Icon(Icons.email_outlined),
+                              labelStyle: const TextStyle(color: Colors.grey),
+                              prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
                               filled: true,
-                              fillColor: Colors.grey.shade50,
+                              fillColor: const Color(0xFF2A2A2A),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide.none,
@@ -203,11 +197,12 @@ class _LoginPageState extends State<LoginPage> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: const BorderSide(
-                                  color: Color.fromARGB(255, 234, 68, 123),
+                                  color: Color(0xFF2196F3),
                                   width: 2,
                                 ),
                               ),
                             ),
+                            style: const TextStyle(color: Colors.white),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Email tidak boleh kosong';
@@ -227,19 +222,21 @@ class _LoginPageState extends State<LoginPage> {
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
                               labelText: "Password",
-                              prefixIcon: const Icon(Icons.lock_outline),
+                              labelStyle: const TextStyle(color: Colors.grey),
+                              prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword
                                       ? Icons.visibility_outlined
                                       : Icons.visibility_off_outlined,
+                                  color: Colors.grey,
                                 ),
                                 onPressed: () => setState(
                                   () => _obscurePassword = !_obscurePassword,
                                 ),
                               ),
                               filled: true,
-                              fillColor: Colors.grey.shade50,
+                              fillColor: const Color(0xFF2A2A2A),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide.none,
@@ -247,11 +244,12 @@ class _LoginPageState extends State<LoginPage> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: const BorderSide(
-                                  color: Color.fromARGB(255, 234, 68, 123),
+                                  color: Color(0xFF2196F3),
                                   width: 2,
                                 ),
                               ),
                             ),
+                            style: const TextStyle(color: Colors.white),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Password tidak boleh kosong';
@@ -270,7 +268,7 @@ class _LoginPageState extends State<LoginPage> {
                               child: const Text(
                                 "Lupa Password?",
                                 style: TextStyle(
-                                  color: Color.fromARGB(255, 234, 68, 123),
+                                  color: Color(0xFF2196F3),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -284,19 +282,14 @@ class _LoginPageState extends State<LoginPage> {
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
-                              onPressed: _isLoading ? null : _login,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color.fromARGB(
-                                  255,
-                                  234,
-                                  68,
-                                  123,
-                                ),
+                                backgroundColor: const Color(0xFF2196F3),
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
+                              onPressed: _isLoading ? null : _login,
                               child: _isLoading
                                   ? const CircularProgressIndicator(
                                       color: Colors.white,
@@ -318,7 +311,7 @@ class _LoginPageState extends State<LoginPage> {
                           Row(
                             children: [
                               Expanded(
-                                child: Divider(color: Colors.grey.shade300),
+                                child: Divider(color: Colors.white.withOpacity(0.1)),
                               ),
                               Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -326,11 +319,11 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 child: Text(
                                   "atau",
-                                  style: TextStyle(color: Colors.grey.shade600),
+                                  style: TextStyle(color: Colors.grey.shade500),
                                 ),
                               ),
                               Expanded(
-                                child: Divider(color: Colors.grey.shade300),
+                                child: Divider(color: Colors.white.withOpacity(0.1)),
                               ),
                             ],
                           ),
@@ -355,7 +348,7 @@ class _LoginPageState extends State<LoginPage> {
                                 child: const Text(
                                   "Registrasi",
                                   style: TextStyle(
-                                    color: Color.fromARGB(255, 234, 68, 123),
+                                    color: Color(0xFF2196F3),
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -373,7 +366,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     "© 2025 GymFit Membership",
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.grey.shade600,
                       fontSize: 13,
                     ),
                   ),

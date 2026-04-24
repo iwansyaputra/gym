@@ -4,7 +4,8 @@ const checkInController = require('../controllers/checkInController');
 const authMiddleware = require('../middleware/auth');
 
 // Check-in routes
-router.post('/nfc', checkInController.checkInNFC); // Public endpoint for NFC reader
+router.post('/lookup', checkInController.lookupMember);   // Preview member info (no check-in)
+router.post('/nfc', checkInController.checkInNFC);        // Actual check-in (records to DB)
 router.get('/history', authMiddleware, checkInController.getCheckInHistory);
 router.get('/stats', authMiddleware, checkInController.getCheckInStats);
 

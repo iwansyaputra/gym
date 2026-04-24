@@ -109,8 +109,10 @@ class _PaymentPageState extends State<PaymentPage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Pembayaran Berhasil'),
-        content: const Text('Membership Anda telah aktif. Selamat berlatih!'),
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Pembayaran Berhasil', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text('Membership Anda telah aktif. Selamat berlatih!', style: TextStyle(color: Colors.grey)),
         actions: [
           TextButton(
             onPressed: () {
@@ -119,6 +121,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 context,
               ).pop(true); // Return to previous page with success
             },
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF2196F3)),
             child: const Text('Mantap!'),
           ),
         ],
@@ -134,9 +137,12 @@ class _PaymentPageState extends State<PaymentPage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Status Pending'),
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Status Pending', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text(
           'Pembayaran Anda sedang diproses. Silakan selesaikan pembayaran.',
+          style: TextStyle(color: Colors.grey),
         ),
         actions: [
           TextButton(
@@ -145,6 +151,7 @@ class _PaymentPageState extends State<PaymentPage> {
               Navigator.of(context).pop(); // Close dialog
               // Jangan pop page, biarkan user menyelesaikan di webview
             },
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF2196F3)),
             child: const Text('Lanjut Bayar'),
           ),
           TextButton(
@@ -167,9 +174,12 @@ class _PaymentPageState extends State<PaymentPage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Pembayaran Gagal'),
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Pembayaran Gagal', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text(
           'Transaksi belum berhasil. Silakan coba lagi atau pilih metode lain.',
+          style: TextStyle(color: Colors.grey),
         ),
         actions: [
           TextButton(
@@ -194,14 +204,17 @@ class _PaymentPageState extends State<PaymentPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Terjadi Kesalahan'),
-        content: Text(message),
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Terjadi Kesalahan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text(message, style: const TextStyle(color: Colors.grey, height: 1.5)),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(); // Close dialog
               Navigator.of(context).pop(false); // Return to previous page
             },
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF2196F3)),
             child: const Text('Kembali'),
           ),
         ],
@@ -212,29 +225,35 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        title: const Text('E-Smartlink Payment'),
-        backgroundColor: const Color(0xFFE26D88), // Warna tema
+        title: const Text(
+          'E-Smartlink Payment',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+        ),
+        backgroundColor: const Color(0xFF0A0A0A),
         foregroundColor: Colors.white,
+        centerTitle: true,
+        elevation: 0,
       ),
       body: _isLoading
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: const [
-                  CircularProgressIndicator(color: Color(0xFFE26D88)),
+                  CircularProgressIndicator(color: Color(0xFF2196F3)),
                   SizedBox(height: 16),
-                  Text('Menyiapkan halaman pembayaran...'),
+                  Text('Menyiapkan halaman pembayaran...', style: TextStyle(color: Colors.grey)),
                 ],
               ),
             )
           : _paymentUrl == null
-          ? const Center(child: Text('Gagal memuat halaman pembayaran'))
+          ? const Center(child: Text('Gagal memuat halaman pembayaran', style: TextStyle(color: Colors.grey)))
           : kIsWeb
           ? _buildWebFallback()
           : _webViewController != null
           ? WebViewWidget(controller: _webViewController!)
-          : const Center(child: Text('Menyiapkan WebView...')),
+          : const Center(child: Text('Menyiapkan WebView...', style: TextStyle(color: Colors.grey))),
     );
   }
 
@@ -244,7 +263,7 @@ class _PaymentPageState extends State<PaymentPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.open_in_browser, size: 64, color: Color(0xFFE26D88)),
+          const Icon(Icons.open_in_browser, size: 64, color: Color(0xFF1976D2)),
           const SizedBox(height: 16),
           const Text(
             'Mode Web Preview tidak mendukung WebView plugin.',
@@ -262,7 +281,7 @@ class _PaymentPageState extends State<PaymentPage> {
               await launchUrl(uri, mode: LaunchMode.platformDefault);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE26D88),
+              backgroundColor: const Color(0xFF1976D2),
               foregroundColor: Colors.white,
             ),
             child: const Text('Buka Halaman Pembayaran'),

@@ -59,11 +59,12 @@ class ApiService {
           await AuthStorage.saveToken(data['data']['token']);
 
           // Simpan data user untuk ditampilkan di UI
-          // Simpan data user untuk ditampilkan di UI
           if (data['data']['user'] != null) {
             String? membershipStatus;
+            String? membershipEndDate;
             if (data['data']['membership'] != null) {
               membershipStatus = 'Active';
+              membershipEndDate = data['data']['membership']['tanggal_berakhir'];
             }
 
             await AuthStorage.saveUserData(
@@ -76,6 +77,7 @@ class ApiService {
               address: data['data']['user']['alamat'],
               dob: data['data']['user']['tanggal_lahir'],
               gender: data['data']['user']['jenis_kelamin'],
+              membershipEndDate: membershipEndDate,
             );
           }
         }
@@ -203,7 +205,6 @@ class ApiService {
           await AuthStorage.saveToken(data['data']['token']);
 
           // Simpan data user
-          // Simpan data user
           if (data['data']['user'] != null) {
             await AuthStorage.saveUserData(
               userId: data['data']['user']['id'],
@@ -215,6 +216,7 @@ class ApiService {
               address: data['data']['user']['alamat'],
               dob: data['data']['user']['tanggal_lahir'],
               gender: data['data']['user']['jenis_kelamin'],
+              membershipEndDate: null, // Verifikasi OTP mungkin tidak ada data tgl akhir, bergantung profile update
             );
           }
         }
@@ -344,6 +346,7 @@ class ApiService {
             address: u['alamat'],
             dob: u['tanggal_lahir'],
             gender: u['jenis_kelamin'],
+            membershipEndDate: m != null ? m['tanggal_berakhir'] : null,
           );
         }
 

@@ -3,6 +3,26 @@ const jwt = require('jsonwebtoken');
 const { pool } = require('../config/database');
 const { generateOTP, sendOTPEmail } = require('../utils/email');
 const moment = require('moment');
+const fs = require('fs');
+const path = require('path');
+
+const getMembershipPackages = () => {
+    try {
+        const pkgPath = path.join(__dirname, '../config/packages.json');
+        const data = fs.readFileSync(pkgPath, 'utf8');
+        const list = JSON.parse(data);
+        const map = {};
+        for (const p of list) {
+            map[p.id] = { durasi: p.durasi, harga: p.harga, nama: p.nama };
+        }
+        return map;
+    } catch (e) {
+        console.error('Error reading packages in authController:', e);
+        return {
+            '1': { durasi: 30, nama: 'Paket Bulanan', harga: 175000 }
+        };
+    }
+};
 
 // Register new user
 const register = async (req, res) => {
@@ -107,12 +127,7 @@ const register = async (req, res) => {
 
             // Create membership if package_id is provided
             if (package_id) {
-                const packages = {
-                    '1': { durasi: 30, nama: 'Paket Bulanan', harga: 250000 },
-                    '2': { durasi: 90, nama: 'Paket 3 Bulan', harga: 650000 },
-                    '3': { durasi: 180, nama: 'Paket 6 Bulan', harga: 1200000 },
-                    '4': { durasi: 365, nama: 'Paket Tahunan', harga: 2500000 }
-                };
+                const packages = getMembershipPackages();
 
                 const selectedPkg = packages[package_id];
                 if (selectedPkg) {

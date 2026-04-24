@@ -1,5 +1,23 @@
 const { pool } = require('../config/database');
 const moment = require('moment');
+const fs = require('fs');
+const path = require('path');
+
+const packagesPath = path.join(__dirname, '../config/packages.json');
+
+const loadPackages = () => {
+    try {
+        const data = fs.readFileSync(packagesPath, 'utf8');
+        return JSON.parse(data);
+    } catch (err) {
+        console.error('Error reading packages.json:', err);
+        return [];
+    }
+};
+
+const savePackages = (packages) => {
+    fs.writeFileSync(packagesPath, JSON.stringify(packages, null, 4), 'utf8');
+};
 
 // Get membership info
 const getMembershipInfo = async (req, res) => {
@@ -43,62 +61,7 @@ const getMembershipInfo = async (req, res) => {
 // Get membership packages
 const getMembershipPackages = async (req, res) => {
     try {
-        const packages = [
-            {
-                id: 1,
-                nama: 'Paket Bulanan',
-                durasi: 30,
-                harga: 250000,
-                deskripsi: 'Akses gym selama 1 bulan',
-                fitur: [
-                    'Akses semua alat gym',
-                    'Konsultasi trainer 1x',
-                    'Loker gratis'
-                ]
-            },
-            {
-                id: 2,
-                nama: 'Paket 3 Bulan',
-                durasi: 90,
-                harga: 650000,
-                deskripsi: 'Akses gym selama 3 bulan',
-                fitur: [
-                    'Akses semua alat gym',
-                    'Konsultasi trainer 3x',
-                    'Loker gratis',
-                    'Diskon 13%'
-                ]
-            },
-            {
-                id: 3,
-                nama: 'Paket 6 Bulan',
-                durasi: 180,
-                harga: 1200000,
-                deskripsi: 'Akses gym selama 6 bulan',
-                fitur: [
-                    'Akses semua alat gym',
-                    'Konsultasi trainer unlimited',
-                    'Loker gratis',
-                    'Diskon 20%',
-                    'Free 1 sesi personal training'
-                ]
-            },
-            {
-                id: 4,
-                nama: 'Paket Tahunan',
-                durasi: 365,
-                harga: 2500000,
-                deskripsi: 'Akses gym selama 1 tahun',
-                fitur: [
-                    'Akses semua alat gym',
-                    'Konsultasi trainer unlimited',
-                    'Loker gratis',
-                    'Diskon 30%',
-                    'Free 3 sesi personal training',
-                    'Akses kelas grup'
-                ]
-            }
-        ];
+        const packages = loadPackages();
 
         res.json({
             success: true,
@@ -111,6 +74,42 @@ const getMembershipPackages = async (req, res) => {
             success: false,
             message: 'Terjadi kesalahan pada server'
         });
+    }
+};
+
+// Update membership package price
+const updateMembershipPackage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { harga, nama, durasi, deskripsi, fitur } = req.body;
+
+        if (harga === undefined || harga < 0) {
+            return res.status(400).json({ success: false, message: 'Harga tidak valid' });
+        }
+
+        const packages = loadPackages();
+        const pkgIndex = packages.findIndex(p => p.id == id);
+        
+        if (pkgIndex === -1) {
+            return res.status(404).json({ success: false, message: 'Paket tidak ditemukan' });
+        }
+
+        packages[pkgIndex].harga = Number(harga);
+        if (nama) packages[pkgIndex].nama = nama;
+        if (durasi) packages[pkgIndex].durasi = Number(durasi);
+        if (deskripsi) packages[pkgIndex].deskripsi = deskripsi;
+        if (fitur && Array.isArray(fitur)) packages[pkgIndex].fitur = fitur;
+
+        savePackages(packages);
+
+        res.json({
+            success: true,
+            message: 'Detail paket berhasil diperbarui',
+            data: packages[pkgIndex]
+        });
+    } catch (error) {
+        console.error('Update membership package error:', error);
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan internal' });
     }
 };
 
@@ -127,15 +126,8 @@ const extendMembership = async (req, res) => {
             });
         }
 
-        // Get package info (hardcoded for now)
-        const packages = {
-            1: { durasi: 30, harga: 250000, nama: 'Paket Bulanan' },
-            2: { durasi: 90, harga: 650000, nama: 'Paket 3 Bulan' },
-            3: { durasi: 180, harga: 1200000, nama: 'Paket 6 Bulan' },
-            4: { durasi: 365, harga: 2500000, nama: 'Paket Tahunan' }
-        };
-
-        const selectedPackage = packages[package_id];
+        const packageList = loadPackages();
+        const selectedPackage = packageList.find(p => p.id == package_id);
 
         if (!selectedPackage) {
             return res.status(400).json({
@@ -197,5 +189,6 @@ const extendMembership = async (req, res) => {
 module.exports = {
     getMembershipInfo,
     getMembershipPackages,
+    updateMembershipPackage,
     extendMembership
 };

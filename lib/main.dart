@@ -22,10 +22,22 @@ class MyWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'GymKu - Membership Gym',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1976D2),
+          primary: const Color(0xFF1976D2),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1976D2),
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        useMaterial3: true,
+      ),
       // Halaman pertama yang ditampilkan saat app buka
       initialRoute: '/',
       // Definisi semua rute navigasi dalam aplikasi
-      // Setiap route mengarah ke halaman tertentu
       routes: {
         '/': (context) => const LoginPage(),
         '/login': (context) => const LoginPage(),
@@ -34,7 +46,6 @@ class MyWidget extends StatelessWidget {
         '/card': (context) => const CardMemberPage(),
         '/riwayat': (context) => const RiwayatPage(),
         '/akun': (context) => const AkunPage(),
-        // '/payment': (context) => const PaymentPage(), // Payment butuh parameter, akses dari menu saja
         '/registrasi': (context) => const RegistrasiPage(),
       },
     );

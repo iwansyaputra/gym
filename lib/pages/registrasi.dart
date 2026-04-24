@@ -23,6 +23,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
   final TextEditingController _alamatController = TextEditingController();
 
   bool _obscurePassword = true; // Untuk sembunyikan password
+  bool _isLoading = false; // Loading state saat proses registrasi
 
   String? _gender; // Jenis kelamin yang dipilih
   DateTime? _tanggalLahir; // Tanggal lahir yang dipilih
@@ -55,6 +56,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
   /// 4. Jika berhasil, pindah ke OTP page untuk verifikasi
   /// 5. Jika gagal, tampilkan error message
   void _submit() async {
+    if (_isLoading) return; // Cegah double submit
     if (!_formKey.currentState!.validate()) return;
     if (_gender == null) {
       ScaffoldMessenger.of(
@@ -68,6 +70,8 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
       ).showSnackBar(const SnackBar(content: Text("Pilih tanggal lahir")));
       return;
     }
+
+    setState(() => _isLoading = true);
 
     // Format tanggal lahir ke format YYYY-MM-DD
     final formattedDate = DateFormat('yyyy-MM-dd').format(_tanggalLahir!);
@@ -84,6 +88,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
     );
 
     if (!mounted) return;
+    setState(() => _isLoading = false);
 
     if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -121,10 +126,16 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        title: const Text("Form Registrasi"),
-        backgroundColor: const Color.fromARGB(255, 234, 68, 123),
+        title: const Text(
+          "Registrasi Akun",
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+        ),
+        backgroundColor: const Color(0xFF0A0A0A),
         foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -136,6 +147,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
               // ================= NAMA =================
               TextFormField(
                 controller: _namaController,
+                style: const TextStyle(color: Colors.white),
                 decoration: _inputDecoration("Nama Lengkap"),
                 validator: (value) =>
                     value == null || value.isEmpty ? "Nama wajib diisi" : null,
@@ -146,6 +158,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
               TextFormField(
                 controller: _teleponController,
                 keyboardType: TextInputType.phone,
+                style: const TextStyle(color: Colors.white),
                 decoration: _inputDecoration("Nomor Telepon"),
                 validator: (value) => value == null || value.isEmpty
                     ? "Nomor telepon wajib diisi"
@@ -157,6 +170,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                style: const TextStyle(color: Colors.white),
                 decoration: _inputDecoration("Email"),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -174,15 +188,18 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: "Password",
+                  labelStyle: const TextStyle(color: Colors.grey),
                   filled: true,
-                  fillColor: Colors.grey.shade100,
+                  fillColor: const Color(0xFF1A1A1A),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
+                      color: Colors.grey,
                     ),
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
@@ -194,7 +211,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: const BorderSide(
-                      color: Color.fromARGB(255, 234, 68, 123),
+                      color: Color(0xFF2196F3),
                       width: 2,
                     ),
                   ),
@@ -214,15 +231,17 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
               // ================= JENIS KELAMIN =================
               DropdownButtonFormField<String>(
                 decoration: _inputDecoration("Jenis Kelamin"),
-                initialValue: _gender,
+                dropdownColor: const Color(0xFF1A1A1A),
+                style: const TextStyle(color: Colors.white),
+                value: _gender,
                 items: const [
                   DropdownMenuItem(
                     value: "Laki-laki",
-                    child: Text("Laki-laki"),
+                    child: Text("Laki-laki", style: TextStyle(color: Colors.white)),
                   ),
                   DropdownMenuItem(
                     value: "Perempuan",
-                    child: Text("Perempuan"),
+                    child: Text("Perempuan", style: TextStyle(color: Colors.white)),
                   ),
                 ],
                 onChanged: (value) => setState(() => _gender = value),
@@ -242,8 +261,8 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
                         : DateFormat("dd MMMM yyyy").format(_tanggalLahir!),
                     style: TextStyle(
                       color: _tanggalLahir == null
-                          ? Colors.grey.shade600
-                          : Colors.black87,
+                          ? Colors.grey.shade500
+                          : Colors.white,
                       fontSize: 16,
                     ),
                   ),
@@ -256,6 +275,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
                 controller: _alamatController,
                 minLines: 3,
                 maxLines: 5,
+                style: const TextStyle(color: Colors.white),
                 decoration: _inputDecoration("Alamat"),
                 validator: (value) => value == null || value.isEmpty
                     ? "Alamat wajib diisi"
@@ -268,18 +288,27 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _submit,
+                  onPressed: _isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 234, 68, 123),
+                    backgroundColor: const Color(0xFF2196F3),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Text(
-                    "Daftar",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text(
+                          "Daftar",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
             ],
@@ -293,8 +322,9 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
+      labelStyle: const TextStyle(color: Colors.grey),
       filled: true,
-      fillColor: Colors.grey.shade100,
+      fillColor: const Color(0xFF1A1A1A),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
@@ -302,7 +332,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(
-          color: Color.fromARGB(255, 234, 68, 123),
+          color: Color(0xFF2196F3),
           width: 2,
         ),
       ),

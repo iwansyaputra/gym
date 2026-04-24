@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let totalPages = 1;
     let allMembers = [];
     let filteredMembers = [];
+    let allPackages = [];
 
     // Load initial data
     await loadMembers();
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const packageSelect = document.getElementById('memberPackage');
 
             if (response.success && response.data && packageSelect) {
+                allPackages = response.data;
                 packageSelect.innerHTML = '<option value="">Pilih paket...</option>' +
                     response.data.map(pkg => `
                         <option value="${pkg.id}">${pkg.nama} - ${formatCurrency(pkg.harga)}</option>
@@ -101,14 +103,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updatePagination() {
         const itemsPerPage = 10;
         totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
+        if (totalPages === 0) totalPages = 1;
 
         const pageInfo = document.getElementById('pageInfo');
         const prevBtn = document.getElementById('prevPage');
         const nextBtn = document.getElementById('nextPage');
+        const showingInfo = document.getElementById('showingInfo');
+        const totalInfo = document.getElementById('totalInfo');
 
-        if (pageInfo) pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages}`;
+        if (pageInfo) pageInfo.textContent = `${currentPage} / ${totalPages}`;
         if (prevBtn) prevBtn.disabled = currentPage === 1;
         if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+        const startIndex = (currentPage - 1) * itemsPerPage + 1;
+        const endIndex = Math.min(currentPage * itemsPerPage, filteredMembers.length);
+        if (showingInfo) showingInfo.textContent = filteredMembers.length > 0 ? `${startIndex}–${endIndex}` : '0';
+        if (totalInfo) totalInfo.textContent = filteredMembers.length;
     }
 
     // Setup event listeners
@@ -247,9 +257,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('memberEmail').value = member.email || '';
         document.getElementById('memberPhone').value = member.phone || '';
         document.getElementById('memberGender').value = member.gender || '';
-        document.getElementById('memberDob').value = member.date_of_birth || '';
+        document.getElementById('memberDob').value = member.date_of_birth ? member.date_of_birth.split('T')[0] : '';
         document.getElementById('memberAddress').value = member.address || '';
-        document.getElementById('memberPackage').value = member.package_id || '';
+        
+        let packageId = '';
+        if (member.package_name) {
+            const foundPackage = allPackages.find(p => p.nama === member.package_name || p.slug === member.package_name);
+            if (foundPackage) {
+                packageId = foundPackage.id;
+            }
+        }
+        document.getElementById('memberPackage').value = packageId;
 
         // Hide password fields when editing
         document.getElementById('passwordGroup').style.display = 'none';
@@ -283,7 +301,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             let response;
             if (memberId) {
-                response = await api.updateProfile(formData);
+                const adminUpdatePayload = {
+                    name: formData.nama,
+                    email: formData.email,
+                    phone: formData.hp,
+                    gender: formData.jenis_kelamin,
+                    date_of_birth: formData.tanggal_lahir,
+                    address: formData.alamat,
+                    package_id: formData.package_id
+                };
+                response = await api.updateUser(memberId, adminUpdatePayload);
             } else {
                 response = await api.register(formData);
             }

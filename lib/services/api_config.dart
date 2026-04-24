@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Konfigurasi API untuk koneksi ke backend server
 /// File ini berisi semua konfigurasi yang diperlukan untuk komunikasi dengan API
 /// seperti base URL, endpoints, dan headers HTTP
@@ -16,7 +14,7 @@ class ApiConfig {
   // 📱 KONFIGURASI IP (Pilih salah satu):
 
   // Opsi 1: IP Saat Ini (Ganti sesuai ipconfig)
-  static const String _currentIP = '192.168.1.2'; // ✅ IP WiFi Aktif (ipconfig)
+  static const String _currentIP = '192.168.100.45'; // ✅ IP WiFi Aktif (ipconfig)
 
   // HOSTING (Tidak Aktif - Error 503)
   // static const String _currentIP = 'https://www.bahariinn.com/gym';

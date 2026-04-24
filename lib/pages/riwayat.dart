@@ -63,21 +63,21 @@ class _RiwayatPageState extends State<RiwayatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8CEDA),
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFFF8CEDA),
+        backgroundColor: const Color(0xFF0A0A0A),
         centerTitle: true,
         title: const Text(
           "Riwayat Transaksi",
           style: TextStyle(
-            color: Color(0xFFE26D88),
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 20,
             letterSpacing: 1.2,
           ),
         ),
-        iconTheme: const IconThemeData(color: Color(0xFFE26D88)),
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -86,21 +86,23 @@ class _RiwayatPageState extends State<RiwayatPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)))
           : RefreshIndicator(
+              color: const Color(0xFF2196F3),
+              backgroundColor: const Color(0xFF1A1A1A),
               onRefresh: _loadTransactions,
               child: _transactions.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Icon(
                             Icons.receipt_long,
                             size: 80,
-                            color: Colors.grey,
+                            color: Colors.grey.withOpacity(0.3),
                           ),
-                          SizedBox(height: 16),
-                          Text(
+                          const SizedBox(height: 16),
+                          const Text(
                             'Belum ada riwayat transaksi',
                             style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
@@ -108,7 +110,8 @@ class _RiwayatPageState extends State<RiwayatPage> {
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(20),
                       itemCount: _transactions.length,
                       itemBuilder: (context, index) {
                         final raw = _transactions[index];
@@ -137,7 +140,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
         break;
       case 'pending':
         statusColor = Colors.orange;
-        statusIcon = Icons.pending;
+        statusIcon = Icons.access_time_filled;
         break;
       case 'failed':
       case 'cancelled':
@@ -151,17 +154,14 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Colors.white, Color(0xFFFFF0F5)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.pink.withOpacity(0.15),
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -173,12 +173,12 @@ class _RiwayatPageState extends State<RiwayatPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE26D88),
-                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFF2196F3).withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.history, color: Colors.white, size: 28),
+                child: const Icon(Icons.receipt_outlined, color: Color(0xFF2196F3), size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -190,15 +190,15 @@ class _RiwayatPageState extends State<RiwayatPage> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFE26D88),
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       _formatDate(transaction['tanggal_transaksi']),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Colors.black54,
+                        color: Colors.grey.shade500,
                       ),
                     ),
                   ],
@@ -210,25 +210,34 @@ class _RiwayatPageState extends State<RiwayatPage> {
                   Text(
                     _formatCurrency(transaction['jumlah']),
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFFE26D88),
+                      color: Color(0xFF2196F3),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(statusIcon, size: 16, color: statusColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        status.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: statusColor.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(statusIcon, size: 12, color: statusColor),
+                        const SizedBox(width: 6),
+                        Text(
+                          status.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -236,20 +245,21 @@ class _RiwayatPageState extends State<RiwayatPage> {
           ),
 
           // Payment method
-          if (transaction['metode_pembayaran'] != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Row(
-                children: [
-                  const Icon(Icons.payment, size: 16, color: Colors.grey),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Metode: ${transaction['metode_pembayaran']}',
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ],
-              ),
+          if (transaction['metode_pembayaran'] != null) ...[
+            const SizedBox(height: 16),
+            Divider(color: Colors.white.withOpacity(0.1), height: 1),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.payment, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
+                Text(
+                  'Metode: ${transaction['metode_pembayaran']}',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                ),
+              ],
             ),
+          ]
         ],
       ),
     );

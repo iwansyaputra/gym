@@ -8,9 +8,6 @@ import 'akun.dart';
 import 'check_in_nfc_page.dart';
 import 'membership_packages_page.dart';
 
-/// Halaman Beranda/Dashboard - Halaman utama setelah login
-/// Menampilkan: Profile user, membership status, check-in option, riwayat transaksi singkat
-/// Juga berfungsi sebagai main page dengan bottom navigation bar untuk akses halaman lain
 class BerandaPage extends StatefulWidget {
   const BerandaPage({super.key});
 
@@ -19,20 +16,18 @@ class BerandaPage extends StatefulWidget {
 }
 
 class _BerandaPageState extends State<BerandaPage> {
-  int _currentIndex = 0; // Index halaman yang sedang aktif di bottom nav
-  Map<String, dynamic>? _profileData; // Data profil user dari API
-  bool _isLoading = true; // Loading state untuk fetch data
+  int _currentIndex = 0;
+  Map<String, dynamic>? _profileData;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData(); // Ambil data profil saat halaman dibuka
+    _loadData();
   }
 
-  /// Method untuk fetch data profil user dari API
-  /// Dipanggil saat initState dan bisa dipanggil ulang saat refresh
   Future<void> _loadData() async {
-    // 1. Coba local storage dulu
+    // 1. Local Storage First
     final localData = await AuthStorage.getUserData();
     if (localData != null && mounted) {
       setState(() {
@@ -44,31 +39,46 @@ class _BerandaPageState extends State<BerandaPage> {
           },
           'membership': localData['membershipStatus'] == 'Active'
               ? {
-                  'tanggal_berakhir': DateTime.now()
-                      .add(const Duration(days: 30))
-                      .toString(),
+                  'tanggal_berakhir': localData['membershipEndDate'] ??
+                      DateTime.now().add(const Duration(days: 30)).toString(),
                 }
               : null,
-          // Catatan: Tanggal expired sulit ditebak dari local storage sederhana,
-          // tapi minimal nama muncul dulu.
         };
         _isLoading = false;
       });
     }
 
-    // 2. Jika belum ada data local, set loading
+    // 2. Set loading if no local data
     if (_profileData == null) {
       setState(() => _isLoading = true);
     }
 
-    // 3. Call API untuk ambil profil user (Data Paling Update)
+    // 3. API Fetch
     final result = await ApiService.getProfile();
 
-    // Update UI dengan data yang diterima dari API
     if (mounted) {
       setState(() {
         if (result['success'] == true) {
-          _profileData = result['data']; // Simpan data profil
+          _profileData = result['data'];
+          
+          final u = result['data']['user'];
+          final m = result['data']['membership'];
+          final c = result['data']['card'];
+          
+          if (u != null) {
+            AuthStorage.saveUserData(
+              userId: u['id'],
+              email: u['email'] ?? '',
+              name: u['nama'] ?? 'Member',
+              cardNumber: c != null ? c['card_number'] : '-',
+              membershipStatus: (m != null && m['status'] == 'active') ? 'Active' : 'Non-Member',
+              hp: u['hp'],
+              address: u['alamat'],
+              dob: u['tanggal_lahir'],
+              gender: u['jenis_kelamin'],
+              membershipEndDate: m != null ? m['tanggal_berakhir'] : null,
+            );
+          }
         }
         _isLoading = false;
       });
@@ -78,29 +88,38 @@ class _BerandaPageState extends State<BerandaPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8CEDA),
-      body: _buildPage(), // Build halaman sesuai index bottom nav yang dipilih
-      /// Bottom Navigation Bar - Menu untuk navigasi antar halaman
-      /// 0 = Beranda, 1 = Promo, 2 = Check-in, 3 = Card, 4 = Riwayat, 5 = Akun
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: const Color(0xFFE26D88),
-        unselectedItemColor: Colors.grey.shade600,
-        backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Beranda"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.local_offer),
-            label: "Promo",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.credit_card), label: "Card"),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: "Riwayat"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Akun"),
-        ],
+      backgroundColor: const Color(0xFF0A0A0A), // Black background
+      body: _buildPage(),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          selectedItemColor: const Color(0xFF2196F3),
+          unselectedItemColor: Colors.grey.shade600,
+          backgroundColor: const Color(0xFF1A1A1A), // Dark bottom nav
+          type: BottomNavigationBarType.fixed,
+          onTap: (index) {
+            setState(() => _currentIndex = index);
+          },
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: "Beranda"),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.local_offer),
+              label: "Promo",
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.credit_card), label: "Card"),
+            BottomNavigationBarItem(icon: Icon(Icons.history), label: "Riwayat"),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Akun"),
+          ],
+        ),
       ),
     );
   }
@@ -122,24 +141,42 @@ class _BerandaPageState extends State<BerandaPage> {
     }
   }
 
-  // ================= HALAMAN BERANDA =================
   Widget _buildBeranda() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF2196F3)));
     }
 
     return SafeArea(
       child: RefreshIndicator(
+        color: const Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF1A1A1A),
         onRefresh: _loadData,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                "Welcome Back,",
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                _profileData?['user']?['nama'] ?? 'Member',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 30),
               _buildUserInfoCard(),
-              const SizedBox(height: 20),
-
-              // ======== CHECK IN CARD ========
+              const SizedBox(height: 25),
               CheckInMethodCard(
                 onMemberTap: () {
                   Navigator.push(
@@ -148,8 +185,7 @@ class _BerandaPageState extends State<BerandaPage> {
                   );
                 },
               ),
-
-              const SizedBox(height: 20),
+              const SizedBox(height: 25),
               _buildTransaksiCard(context),
             ],
           ),
@@ -158,20 +194,13 @@ class _BerandaPageState extends State<BerandaPage> {
     );
   }
 
-  // ================= USER CARD =================
   Widget _buildUserInfoCard() {
-    final user = _profileData?['user'];
     final membership = _profileData?['membership'];
 
-    String nama = user?['nama'] ?? 'User';
-    String email = user?['email'] ?? '';
-    String hp = user?['hp'] ?? '';
-
-    // Hitung sisa hari membership
     int sisaHari = 0;
     if (membership != null && membership['tanggal_berakhir'] != null) {
       try {
-        final endDate = DateTime.parse(membership['tanggal_berakhir']);
+        final endDate = DateTime.parse(membership['tanggal_berakhir']).toLocal();
         sisaHari = endDate.difference(DateTime.now()).inDays;
         if (sisaHari < 0) sisaHari = 0;
       } catch (e) {
@@ -181,15 +210,19 @@ class _BerandaPageState extends State<BerandaPage> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+            color: const Color(0xFF0D47A1).withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -197,93 +230,86 @@ class _BerandaPageState extends State<BerandaPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const CircleAvatar(
-                radius: 32,
-                backgroundColor: Color(0xFFE26D88),
-                child: Icon(Icons.person, size: 40, color: Colors.white),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      nama,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    Text(
-                      email,
-                      style: TextStyle(color: Colors.grey.shade700),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    Text(hp, style: TextStyle(color: Colors.grey.shade700)),
-                  ],
+              const Text(
+                "MEMBERSHIP STATUS",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
+              Icon(
+                membership != null ? Icons.verified : Icons.error_outline,
+                color: Colors.white,
               ),
             ],
           ),
-
-          const SizedBox(height: 20),
-
-          // MASA AKTIF
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFDE3EA),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.verified, color: Color(0xFFE26D88)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "Sisa masa aktif member: $sisaHari hari",
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 10),
+          Text(
+            membership != null ? "Active Member" : "Non-Member",
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
             ),
           ),
-
-          const SizedBox(height: 12),
-
-          // WARNING
-          if (sisaHari <= 5)
+          const SizedBox(height: 20),
+          
+          if (membership != null) ...[
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFDD9D9),
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.black.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.timer, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    "Sisa Aktif: $sisaHari Hari",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          if (sisaHari <= 5) ...[
+            const SizedBox(height: 15),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.red),
-                  SizedBox(width: 10),
+                  Icon(Icons.warning_amber_rounded, color: Colors.white, size: 18),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      "Masa aktif member hampir habis. Segera perpanjang sekarang.",
+                      "Masa aktif hampir habis. Perpanjang sekarang.",
                       style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        fontSize: 13,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          if (sisaHari <= 5) const SizedBox(height: 12),
-          if (sisaHari <= 5)
+            const SizedBox(height: 15),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+              child: ElevatedButton(
                 onPressed: () async {
                   final result = await Navigator.push(
                     context,
@@ -296,69 +322,84 @@ class _BerandaPageState extends State<BerandaPage> {
                     await _loadData();
                   }
                 },
-                icon: const Icon(Icons.payment),
-                label: const Text('Perpanjang Membership'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE26D88),
-                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF0D47A1),
                   padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Perpanjang Membership',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
+          ],
         ],
       ),
     );
   }
 
-  // ================= CARD RIWAYAT =================
   Widget _buildTransaksiCard(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.receipt_long, size: 42, color: Color(0xFFE26D88)),
-          const SizedBox(width: 18),
-          const Expanded(
-            child: Text(
-              "Lihat transaksi atau pembayaran terbaru Anda",
-              style: TextStyle(fontSize: 16),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const RiwayatPage()),
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2196F3).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.receipt_long, color: Color(0xFF2196F3)),
             ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE26D88),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Riwayat Transaksi",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    "Lihat detail pembayaran Anda",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RiwayatPage()),
-              );
-            },
-            child: const Text("Riwayat"),
-          ),
-        ],
+            const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ================= CHECK IN METHOD CARD WIDGET =================
 class CheckInMethodCard extends StatelessWidget {
   final VoidCallback onMemberTap;
 
@@ -366,58 +407,58 @@ class CheckInMethodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: onMemberTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFDE3EA),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFE26D88).withOpacity(0.3),
-              width: 1.5,
+    return InkWell(
+      onTap: onMemberTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFF2196F3).withOpacity(0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2196F3).withOpacity(0.05),
+              blurRadius: 10,
             ),
-          ),
-          child: Row(
-            children: const [
-              Icon(Icons.credit_card, size: 40, color: Color(0xFFE26D88)),
-              SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Check-in dengan Member Card",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      "Tempelkan kartu member Anda untuk check-in",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2196F3).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              Icon(Icons.arrow_forward_ios, size: 20, color: Color(0xFFE26D88)),
-            ],
-          ),
+              child: const Icon(Icons.nfc, color: Color(0xFF2196F3), size: 32),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Tap to Check-in",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    "Gunakan NFC untuk absen di gate gym",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Color(0xFF2196F3), size: 16),
+          ],
         ),
       ),
     );

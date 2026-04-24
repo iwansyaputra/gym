@@ -1,334 +1,112 @@
 <!DOCTYPE html>
-
 <html lang="id">
-
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Login - GymKu</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-<style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Inter', sans-serif;
-    height: 100vh;
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #fff;
-    overflow: hidden;
-}
-
-/* CONTAINER */
-.login-container {
-    position: relative;
-    width: 100%;
-    max-width: 380px;
-}
-
-/* CARD */
-.login-card {
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(20px);
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-    z-index: 2;
-    position: relative;
-    animation: fadeIn 0.6s ease;
-}
-
-/* HEADER */
-.login-header {
-    text-align: center;
-    margin-bottom: 1.5rem;
-}
-
-.logo-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-}
-
-.logo-icon {
-    width: 28px;
-    height: 28px;
-}
-
-.login-subtitle {
-    font-size: 0.85rem;
-    opacity: 0.7;
-}
-
-/* FORM */
-.form-group {
-    margin-bottom: 1rem;
-}
-
-label {
-    font-size: 0.8rem;
-    opacity: 0.8;
-}
-
-.input-wrapper {
-    position: relative;
-    margin-top: 6px;
-}
-
-.input-icon {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 16px;
-    opacity: 0.6;
-}
-
-input {
-    width: 100%;
-    padding: 10px 10px 10px 35px;
-    border-radius: 8px;
-    border: none;
-    outline: none;
-    background: rgba(255,255,255,0.08);
-    color: #fff;
-}
-
-input::placeholder {
-    color: #ccc;
-}
-
-/* TOGGLE */
-.toggle-password {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-
-/* OPTIONS */
-.form-options {
-    margin-bottom: 1rem;
-    font-size: 0.8rem;
-}
-
-/* BUTTON */
-.btn-primary {
-    width: 100%;
-    padding: 10px;
-    border-radius: 8px;
-    border: none;
-    background: #6366f1;
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
-    position: relative;
-}
-
-.btn-primary:hover {
-    background: #4f46e5;
-}
-
-.btn-primary.loading {
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-/* LOADER */
-.btn-loader {
-    display: none;
-}
-
-.btn-primary.loading .btn-text {
-    display: none;
-}
-
-.btn-primary.loading .btn-loader {
-    display: inline-block;
-}
-
-/* ERROR */
-.error-message {
-    margin-top: 10px;
-    color: #f87171;
-    font-size: 0.8rem;
-    display: none;
-}
-
-/* FOOTER */
-.login-footer {
-    text-align: center;
-    margin-top: 1rem;
-    font-size: 0.75rem;
-    opacity: 0.5;
-}
-
-/* BACKGROUND ORBS */
-.gradient-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(120px);
-}
-
-.orb-1 {
-    width: 200px;
-    height: 200px;
-    background: #6366f1;
-    top: -50px;
-    left: -50px;
-}
-
-.orb-2 {
-    width: 250px;
-    height: 250px;
-    background: #ec4899;
-    bottom: -50px;
-    right: -50px;
-}
-
-.orb-3 {
-    width: 150px;
-    height: 150px;
-    background: #22c55e;
-    top: 50%;
-    right: -60px;
-}
-
-/* ANIMATION */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-</style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — GymKu Admin</title>
+  <meta name="description" content="Login ke sistem admin GymKu">
+  <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
+<div class="login-page">
 
-<div class="login-container">
+  <!-- Left decoration -->
+  <div class="login-left">
+    <div class="login-deco-orb login-deco-orb-1"></div>
+    <div class="login-deco-orb login-deco-orb-2"></div>
 
-```
-<div class="login-card">
-
-    <div class="login-header">
-        <div class="logo-container">
-            <svg class="logo-icon" viewBox="0 0 24 24">
-                <path d="M20.57 14.86L22 13.43L20.57 12L17 15.57L8.43 7L12 3.43L10.57 2L9.14 3.43L7.71 2L5.57 4.14L4.14 2.71L2.71 4.14L4.14 5.57L2 7.71L3.43 9.14L2 10.57L3.43 12L7 8.43L15.57 17L12 20.57L13.43 22L14.86 20.57L16.29 22L18.43 19.86L19.86 21.29L21.29 19.86L19.86 18.43L22 16.29L20.57 14.86Z" fill="currentColor"/>
-            </svg>
-            <h1>GymKu Admin</h1>
+    <div class="login-deco">
+      <div class="login-brand">
+        <div class="login-brand-icon">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14 4.14 5.57 2 7.71 3.43 9.14 2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22 14.86 20.57 16.29 22 18.43 19.86 19.86 21.29 21.29 19.86 19.86 18.43 22 16.29 20.57 14.86Z" fill="currentColor"/></svg>
         </div>
-        <p class="login-subtitle">Sistem Manajemen Membership</p>
+        <span class="login-brand-text">GymKu</span>
+      </div>
+
+      <h1 class="login-tagline">Sistem Manajemen<br><span>Gym Terpadu</span></h1>
+      <p class="login-desc">Platform admin all-in-one untuk kelola member, transaksi, check-in NFC, dan laporan keuangan secara real-time.</p>
+
+      <div class="login-features">
+        <div class="login-feature">
+          <div class="login-feature-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M16 11C17.66 11 18.99 9.66 18.99 8C18.99 6.34 17.66 5 16 5C14.34 5 13 6.34 13 8C13 9.66 14.34 11 16 11ZM8 11C9.66 11 10.99 9.66 10.99 8C10.99 6.34 9.66 5 8 5C6.34 5 5 6.34 5 8C5 9.66 6.34 11 8 11ZM8 13C5.67 13 1 14.17 1 16.5V19H15V16.5C15 14.17 10.33 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 13.89 17 15.02 17 16.5V19H23V16.5C23 14.17 18.33 13 16 13Z" fill="currentColor"/></svg>
+          </div>
+          Manajemen member & keanggotaan
+        </div>
+        <div class="login-feature">
+          <div class="login-feature-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M20 4H4C2.89 4 2 4.89 2 6V18C2 19.11 2.89 20 4 20H20C21.11 20 22 19.11 22 18V6C22 4.89 21.11 4 20 4ZM20 18H4V12H20V18ZM20 8H4V6H20V8Z" fill="currentColor"/></svg>
+          </div>
+          Integrasi payment gateway & transaksi
+        </div>
+        <div class="login-feature">
+          <div class="login-feature-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM9 17H7V10H9V17ZM13 17H11V7H13V17ZM17 17H15V13H17V17Z" fill="currentColor"/></svg>
+          </div>
+          Laporan keuangan & analytics real-time
+        </div>
+        <div class="login-feature">
+          <div class="login-feature-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M17.73 12.02L21.71 8.04C22.1 7.65 22.1 7.02 21.71 6.63L17.37 2.29C16.98 1.9 16.35 1.9 15.96 2.29L12 6.27 8.04 2.31C7.65 1.92 7.02 1.92 6.63 2.31L2.29 6.65C1.9 7.04 1.9 7.67 2.29 8.06L6.27 12 2.31 15.96C1.92 16.35 1.92 16.98 2.31 17.37L6.65 21.71C7.04 22.1 7.67 22.1 8.06 21.71L12 17.73L15.96 21.69C16.35 22.08 16.98 22.08 17.37 21.69L21.71 17.35C22.1 16.96 22.1 16.33 21.71 15.94L17.73 12.02Z" fill="currentColor"/></svg>
+          </div>
+          Check-in NFC otomatis & tercatat
+        </div>
+      </div>
     </div>
+  </div>
 
-    <form id="loginForm">
+  <!-- Right: Login form -->
+  <div class="login-right">
+    <div class="login-form-wrap">
+      <h2 class="login-form-title">Selamat Datang 👋</h2>
+      <p class="login-form-sub">Masuk ke panel admin GymKu</p>
+
+      <div class="login-error" id="loginError"></div>
+
+      <form class="login-form" id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <div class="input-icon-wrap">
+            <svg class="form-icon" viewBox="0 0 24 24" fill="none"><path d="M20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 8L12 13 4 8V6L12 11 20 6V8Z" fill="currentColor"/></svg>
+            <input type="email" id="email" class="form-control" placeholder="admin@gymku.com" required autocomplete="email">
+          </div>
+        </div>
 
         <div class="form-group">
-            <label>Email</label>
-            <div class="input-wrapper">
-                <svg class="input-icon" viewBox="0 0 24 24">
-                    <path d="M20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4Z" fill="currentColor"/>
-                </svg>
-                <input type="email" id="email" placeholder="admin@gymku.com" required>
-            </div>
+          <label class="form-label" for="password">Password</label>
+          <div class="input-icon-wrap" style="position:relative;">
+            <svg class="form-icon" viewBox="0 0 24 24" fill="none"><path d="M18 8H17V6C17 3.24 14.76 1 12 1C9.24 1 7 3.24 7 6V8H6C4.9 8 4 8.9 4 10V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V10C20 8.9 19.1 8 18 8ZM12 17C10.9 17 10 16.1 10 15C10 13.9 10.9 13 12 13C13.1 13 14 13.9 14 15C14 16.1 13.1 17 12 17ZM15.1 8H8.9V6C8.9 4.29 10.29 2.9 12 2.9C13.71 2.9 15.1 4.29 15.1 6V8Z" fill="currentColor"/></svg>
+            <input type="password" id="password" class="form-control" style="padding-right:40px;" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" class="password-toggle" id="togglePassword" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);">
+              <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;"><path d="M12 4.5C7 4.5 2.73 7.61 1 12C2.73 16.39 7 19.5 12 19.5C17 19.5 21.27 16.39 23 12C21.27 7.61 17 4.5 12 4.5ZM12 17C9.24 17 7 14.76 7 12C7 9.24 9.24 7 12 7C14.76 7 17 9.24 17 12C17 14.76 14.76 17 12 17ZM12 9C10.34 9 9 10.34 9 12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12C15 10.34 13.66 9 12 9Z" fill="currentColor"/></svg>
+            </button>
+          </div>
         </div>
 
-        <div class="form-group">
-            <label>Password</label>
-            <div class="input-wrapper">
-                <svg class="input-icon" viewBox="0 0 24 24">
-                    <path d="M12 2C9 2 7 4 7 7V8H6C4.9 8 4 8.9 4 10V20C4 21 4.9 22 6 22H18C19 22 20 21 20 20V10C20 8.9 19 8 18 8H17V7C17 4 15 2 12 2Z" fill="currentColor"/>
-                </svg>
-                <input type="password" id="password" required>
-                <button type="button" class="toggle-password" id="togglePassword">👁️</button>
-            </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <label style="display:flex;align-items:center;gap:7px;font-size:.85rem;color:var(--text-2);cursor:pointer;">
+            <input type="checkbox" id="rememberMe" style="width:14px;height:14px;accent-color:var(--brand-1);">
+            Ingat saya
+          </label>
         </div>
 
-        <div class="form-options">
-            <label>
-                <input type="checkbox"> Ingat saya
-            </label>
-        </div>
-
-        <button type="submit" class="btn-primary" id="loginBtn">
-            <span class="btn-text">Masuk</span>
-            <span class="btn-loader">Loading...</span>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">
+          <span class="btn-text">Masuk</span>
+          <div class="btn-loader" id="btnLoader"></div>
         </button>
+      </form>
 
-        <div id="errorMessage" class="error-message"></div>
-
-    </form>
-
-    <div class="login-footer">
-        <p>&copy; 2026 GymKu</p>
+      <p class="login-footer-note" style="margin-top:24px;">
+        GymKu Admin &copy; 2026 &mdash; Sistem Manajemen Gym
+      </p>
     </div>
+  </div>
 
 </div>
 
-<div class="gradient-orb orb-1"></div>
-<div class="gradient-orb orb-2"></div>
-<div class="gradient-orb orb-3"></div>
-```
-
-</div>
-
-<script>
-// TOGGLE PASSWORD
-document.getElementById("togglePassword").addEventListener("click", () => {
-    const pass = document.getElementById("password");
-    pass.type = pass.type === "password" ? "text" : "password";
-});
-
-// LOGIN
-const form = document.getElementById("loginForm");
-const btn = document.getElementById("loginBtn");
-const errorMsg = document.getElementById("errorMessage");
-
-form.addEventListener("submit", function(e) {
-    e.preventDefault();
-
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
-
-    if (!email || !password) {
-        showError("Email dan password wajib diisi!");
-        return;
-    }
-
-    btn.classList.add("loading");
-
-    setTimeout(() => {
-        if (email === "admin@gymku.com" && password === "123456") {
-            alert("Login berhasil!");
-        } else {
-            showError("Email atau password salah!");
-        }
-        btn.classList.remove("loading");
-    }, 1200);
-});
-
-function showError(msg) {
-    errorMsg.style.display = "block";
-    errorMsg.innerText = msg;
-}
-</script>
-
+<script src="js/config.js?v=20260418"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/login.js"></script>
 </body>
 </html>

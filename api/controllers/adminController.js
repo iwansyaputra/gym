@@ -291,7 +291,7 @@ const getRevenueStatistics = async (req, res) => {
 const updateUserByAdmin = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, phone, gender, date_of_birth, address } = req.body;
+        const { name, email, phone, gender, date_of_birth, address, package_id } = req.body;
 
         // Check if user exists
         const [users] = await pool.query('SELECT id FROM users WHERE id = ?', [id]);
@@ -332,17 +332,62 @@ const updateUserByAdmin = async (req, res) => {
             params.push(address);
         }
 
-        if (updateFields.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Tidak ada data yang diupdate'
-            });
+        if (updateFields.length > 0) {
+            params.push(id);
+            const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+            await pool.query(query, params);
         }
 
-        params.push(id);
-        const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+        // Handle membership package assignment/update
+        if (package_id) {
+            const fs = require('fs');
+            const path = require('path');
+            try {
+                const pkgPath = path.join(__dirname, '../config/packages.json');
+                const pkgData = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+                const selectedPackage = pkgData.find(p => p.id == package_id);
+                
+                if (selectedPackage) {
+                    const durasi = selectedPackage.durasi || 30;
+                    const namaPaket = selectedPackage.nama || selectedPackage.title;
+                    const harga = selectedPackage.harga || 0;
+                    
+                    const startDate = new Date();
+                    const endDate = new Date();
+                    endDate.setDate(startDate.getDate() + durasi);
 
-        await pool.query(query, params);
+                    // Check for existing active membership
+                    const [activeMem] = await pool.query("SELECT id FROM memberships WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1", [id]);
+                    
+                    if (activeMem.length > 0) {
+                        await pool.query(
+                            "UPDATE memberships SET paket = ?, tanggal_mulai = ?, tanggal_berakhir = ? WHERE id = ?", 
+                            [namaPaket, startDate, endDate, activeMem[0].id]
+                        );
+                    } else {
+                        await pool.query(
+                            "INSERT INTO memberships (user_id, paket, tanggal_mulai, tanggal_berakhir, hargapaket, total_harga, status) VALUES (?, ?, ?, ?, ?, ?, 'active')", 
+                            [id, namaPaket, startDate, endDate, harga, harga]
+                        );
+                    }
+                    
+                    // Also ensure member card is active
+                    const [cards] = await pool.query('SELECT id FROM member_cards WHERE user_id = ?', [id]);
+                    if (cards.length === 0) {
+                        const nfc_id = 'NFC-' + Date.now().toString().slice(-6);
+                        const card_number = 'GYM' + id.toString().padStart(4, '0') + Date.now().toString().slice(-4);
+                        await pool.query(
+                            'INSERT INTO member_cards (user_id, nfc_id, card_number, is_active) VALUES (?, ?, ?, ?)',
+                            [id, nfc_id, card_number, true]
+                        );
+                    } else {
+                        await pool.query('UPDATE member_cards SET is_active = TRUE WHERE user_id = ?', [id]);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed handling package assignment in admin update:", err);
+            }
+        }
 
         res.json({
             success: true,
@@ -421,18 +466,33 @@ const getAllTransactions = async (req, res) => {
 // Get all check-ins (admin only)
 const getAllCheckIns = async (req, res) => {
     try {
-        const { limit = 100, offset = 0 } = req.query;
-
-        const [checkins] = await pool.query(`
+        const { date, limit = 100, offset = 0 } = req.query;
+        let query = `
             SELECT 
                 c.*,
                 u.nama as user_name,
-                u.email as user_email
+                u.email as user_email,
+                mc.nfc_id,
+                m.tanggal_berakhir as membership_expiry
             FROM check_ins c
             LEFT JOIN users u ON c.user_id = u.id
-            ORDER BY c.check_in_time DESC
-            LIMIT ? OFFSET ?
-        `, [parseInt(limit), parseInt(offset)]);
+            LEFT JOIN member_cards mc ON u.id = mc.user_id
+            LEFT JOIN (
+                SELECT user_id, MAX(tanggal_berakhir) as tanggal_berakhir FROM memberships GROUP BY user_id
+            ) m ON u.id = m.user_id
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (date) {
+            query += ' AND DATE(c.check_in_time) = ?';
+            params.push(date);
+        }
+
+        query += ' ORDER BY c.check_in_time DESC LIMIT ? OFFSET ?';
+        params.push(parseInt(limit), parseInt(offset));
+
+        const [checkins] = await pool.query(query, params);
 
         res.json({
             success: true,

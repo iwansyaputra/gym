@@ -17,6 +17,7 @@ class AuthStorage {
   static const String _userAddressKey = 'user_address';
   static const String _userDobKey = 'user_dob';
   static const String _userGenderKey = 'user_gender';
+  static const String _membershipEndDateKey = 'membership_end_date'; // Tgl expired
 
   // ==================== TOKEN METHODS ====================
 
@@ -43,6 +44,7 @@ class AuthStorage {
     String? address,
     String? dob,
     String? gender,
+    String? membershipEndDate,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_userIdKey, userId);
@@ -59,6 +61,7 @@ class AuthStorage {
     if (address != null) await prefs.setString(_userAddressKey, address);
     if (dob != null) await prefs.setString(_userDobKey, dob);
     if (gender != null) await prefs.setString(_userGenderKey, gender);
+    if (membershipEndDate != null) await prefs.setString(_membershipEndDateKey, membershipEndDate);
   }
 
   /// Ambil data user lengkap
@@ -75,6 +78,7 @@ class AuthStorage {
     final address = prefs.getString(_userAddressKey);
     final dob = prefs.getString(_userDobKey);
     final gender = prefs.getString(_userGenderKey);
+    final membershipEndDate = prefs.getString(_membershipEndDateKey);
 
     if (userId == null || email == null || name == null) {
       return null;
@@ -90,6 +94,7 @@ class AuthStorage {
       'address': address ?? '-',
       'dob': dob,
       'gender': gender ?? '-',
+      'membershipEndDate': membershipEndDate,
     };
   }
 

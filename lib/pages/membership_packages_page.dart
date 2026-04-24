@@ -15,7 +15,7 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
     {
       'slug': 'bulanan',
       'title': 'Bulanan',
-      'price': 250000,
+      'price': 175000,
       'duration': '30 Hari',
       'features': [
         'Akses semua alat gym',
@@ -24,25 +24,25 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
         'Shower & toilet',
         'Free WiFi',
       ],
-      'color': 0xFF00D4FF,
+      'color': 0xFF2196F3,
       'isPopular': false,
       'discount': null,
     },
     {
-      'slug': 'tahunan',
-      'title': 'Tahunan',
-      'price': 2500000,
-      'duration': '365 Hari',
+      'slug': '3bulan',
+      'title': '3 Bulan',
+      'price': 472500,
+      'duration': '90 Hari',
       'features': [
         'Semua benefit Bulanan',
         'Free 1x personal training',
-        'Diskon 20% merchandise',
+        'Diskon 10% (Hemat Rp 52.500)',
         'Priority booking class',
-        'Guest pass 2x/bulan',
+        'Guest pass 1x/bulan',
       ],
-      'color': 0xFFFFD700,
+      'color': 0xFF1976D2,
       'isPopular': true,
-      'discount': '2 bulan gratis!',
+      'discount': 'DISKON 10%',
     },
   ];
 
@@ -64,39 +64,30 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
       for (final item in rawList) {
         if (item is! Map) continue;
         final data = Map<String, dynamic>.from(item as Map);
-        final nama = (data['nama'] ?? '').toString().toLowerCase();
+        final slug = (data['slug'] ?? '').toString();
+        final title = (data['nama'] ?? '').toString().replaceAll('Paket ', '');
+        final featuresList = _toStringList(data['fitur']);
 
-        if (nama.contains('bulanan')) {
-          parsed.add({
-            'slug': 'bulanan',
-            'title': 'Bulanan',
-            'price': _asInt(data['harga']) ?? 250000,
-            'duration': '${_asInt(data['durasi']) ?? 30} Hari',
-            'features': _toStringList(data['fitur']),
-            'color': 0xFF00D4FF,
-            'isPopular': false,
-            'discount': null,
-          });
-        } else if (nama.contains('tahunan')) {
-          parsed.add({
-            'slug': 'tahunan',
-            'title': 'Tahunan',
-            'price': _asInt(data['harga']) ?? 2500000,
-            'duration': '${_asInt(data['durasi']) ?? 365} Hari',
-            'features': _toStringList(data['fitur']),
-            'color': 0xFFFFD700,
-            'isPopular': true,
-            'discount': '2 bulan gratis!',
-          });
-        }
+        // Default popular tag if it's the 3 month or 6 month
+        bool isPopular = slug.contains('3') || slug.contains('6');
+        int colorHex = isPopular ? 0xFF1976D2 : 0xFF2196F3;
+        String? discount = isPopular ? 'PILIHAN FAVORIT' : null;
+
+        parsed.add({
+          'slug': slug,
+          'title': title,
+          'price': _asInt(data['harga']) ?? 0,
+          'duration': '${_asInt(data['durasi']) ?? 30} Hari',
+          'features': featuresList,
+          'color': colorHex,
+          'isPopular': isPopular,
+          'discount': discount,
+          'sortValue': _asInt(data['harga']) ?? 0,
+        });
       }
 
       if (parsed.isNotEmpty) {
-        parsed.sort(
-          (a, b) => (a['slug'] == 'bulanan' ? 0 : 1).compareTo(
-            b['slug'] == 'bulanan' ? 0 : 1,
-          ),
-        );
+        parsed.sort((a, b) => (a['sortValue'] as int).compareTo(b['sortValue'] as int));
         _packages = parsed;
       }
     }
@@ -119,65 +110,67 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        title: const Text('Paket Membership'),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.black, Color(0xFF1a1a1a)],
+        title: const Text(
+          'Paket Membership',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
           ),
         ),
-        child: SafeArea(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Pilih Paket Membership',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+        backgroundColor: const Color(0xFF0A0A0A),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)))
+            : Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Pilih Paket\nMembership',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.2,
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Dapatkan akses penuh ke semua fasilitas gym',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Dapatkan akses tak terbatas ke semua fasilitas dan kelas.',
+                      style: TextStyle(fontSize: 15, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 30),
+                    Expanded(
+                      child: ListView.separated(
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: _packages.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 24),
+                        itemBuilder: (context, index) {
+                          final item = _packages[index];
+                          return _buildPackageCard(
+                            context: context,
+                            title: item['title'] as String,
+                            price: item['price'] as int,
+                            duration: item['duration'] as String,
+                            slug: item['slug'] as String,
+                            features: (item['features'] as List<String>),
+                            color: Color(item['color'] as int),
+                            isPopular: item['isPopular'] as bool,
+                            discount: item['discount'] as String?,
+                          );
+                        },
                       ),
-                      const SizedBox(height: 32),
-                      Expanded(
-                        child: ListView.separated(
-                          itemCount: _packages.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 20),
-                          itemBuilder: (context, index) {
-                            final item = _packages[index];
-                            return _buildPackageCard(
-                              context: context,
-                              title: item['title'] as String,
-                              price: item['price'] as int,
-                              duration: item['duration'] as String,
-                              slug: item['slug'] as String,
-                              features: (item['features'] as List<String>),
-                              color: Color(item['color'] as int),
-                              isPopular: item['isPopular'] as bool,
-                              discount: item['discount'] as String?,
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-        ),
+              ),
       ),
     );
   }
@@ -195,19 +188,42 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [color.withOpacity(0.2), color.withOpacity(0.05)],
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isPopular ? color : color.withOpacity(0.3),
+          color: isPopular ? color.withOpacity(0.8) : Colors.white.withOpacity(0.05),
           width: isPopular ? 2 : 1,
         ),
+        boxShadow: isPopular
+            ? [
+                BoxShadow(
+                  color: color.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                )
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                )
+              ],
       ),
       child: Stack(
         children: [
+          if (isPopular)
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                padding: const EdgeInsets.all(50),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color.withOpacity(0.05),
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -217,28 +233,30 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      title,
+                      title.toUpperCase(),
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: color,
+                        letterSpacing: 2,
+                        color: isPopular ? color : Colors.white,
                       ),
                     ),
                     if (discount != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
+                          horizontal: 10,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.red.withOpacity(0.1),
+                          border: Border.all(color: Colors.red.withOpacity(0.5)),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           discount,
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
+                            color: Colors.redAccent,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -248,52 +266,51 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
                 const SizedBox(height: 8),
                 Text(
                   duration,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Rp ',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Colors.white.withOpacity(0.7),
                       ),
                     ),
                     Text(
                       _formatPrice(price),
                       style: const TextStyle(
                         fontSize: 36,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
                         color: Colors.white,
+                        letterSpacing: -1,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Benefit:',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                Divider(color: Colors.white.withOpacity(0.1), height: 1),
+                const SizedBox(height: 24),
                 ...features.map(
                   (feature) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
+                    padding: const EdgeInsets.only(bottom: 12.0),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.check_circle, color: color, size: 20),
+                        Icon(
+                          Icons.check_circle_outline,
+                          color: isPopular ? color : Colors.grey.shade600,
+                          size: 20,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             feature,
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 15,
                               color: Colors.white70,
                             ),
                           ),
@@ -302,23 +319,23 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () => _handlePayment(context, slug, price),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: color,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: isPopular ? color : const Color(0xFF2A2A2A),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'Pilih Paket',
-                      style: TextStyle(
+                    child: Text(
+                      'Pilih Paket $title',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -331,25 +348,26 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
           if (isPopular)
             Positioned(
               top: 0,
-              right: 0,
+              right: 24,
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 8,
+                  vertical: 6,
                 ),
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
                   ),
                 ),
                 child: const Text(
                   'POPULER',
                   style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 12,
+                    color: Colors.white,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
                   ),
                 ),
               ),
@@ -374,25 +392,27 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1a1a1a),
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          'Konfirmasi Pembayaran',
-          style: TextStyle(color: Colors.white),
+          'Konfirmasi',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Anda akan membeli paket $paket seharga Rp ${_formatPrice(harga)}. Lanjutkan ke pembayaran?',
-          style: const TextStyle(color: Colors.white70),
+          'Anda akan membeli paket $paket seharga Rp ${_formatPrice(harga)}.\nLanjutkan pembayaran?',
+          style: const TextStyle(color: Colors.grey, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00D4FF),
-              foregroundColor: Colors.black,
+              backgroundColor: const Color(0xFF2196F3),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Lanjutkan'),
           ),
@@ -413,7 +433,7 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
           const SnackBar(
             content: Text('Pembayaran berhasil! Membership Anda sudah aktif.'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
           ),
         );
 
