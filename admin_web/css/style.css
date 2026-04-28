@@ -1380,3 +1380,14 @@ select.form-control option { background: var(--surface-2); }
 .mb-4 { margin-bottom: 16px; }
 .w-full { width: 100%; }
 .truncate { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* ── NFC Bridge Status Indicator ──────────────────────────── */
+.dot-online {
+  background: var(--success) !important;
+  box-shadow: 0 0 6px var(--success);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.dot-offline {
+  background: var(--danger) !important;
+  box-shadow: none;
+}

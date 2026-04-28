@@ -2,10 +2,13 @@
 document.addEventListener('DOMContentLoaded', async () => {
     if (!auth.requireAuth()) return;
 
-    let nfcReader = null;
-    let currentMember = null;       // Data member yang sedang di-preview
-    let currentNfcId = null;        // NFC ID / User ID yang di-scan
-    let isProcessing = false;       // Guard agar tidak bisa double-klik
+    let nfcReader   = null;
+    let nfcBridgeWS = null;         // WebSocket ke nfc-bridge (ACR122U)
+    let currentMember  = null;      // Data member yang sedang di-preview
+    let currentNfcId   = null;      // NFC ID / User ID yang di-scan
+    let isProcessing   = false;     // Guard agar tidak bisa double-klik
+    let lastScannedUid = null;      // Debounce — hindari scan ganda 1 kartu
+    let scanCooldown   = 0;           // Timestamp terakhir scan (ms)
 
     // Initialize
     await loadTodayCheckins();
@@ -15,11 +18,118 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ─── NFC Reader ───────────────────────────────────────────────────────────
     function initializeNFCReader() {
+        // Prioritas 1: Coba connect ke NFC Bridge (ACR122U via WebSocket)
+        connectNFCBridge();
+    }
+
+    /**
+     * Hubungkan ke nfc-bridge.py yang berjalan di localhost:8765
+     * Bridge ini membaca kartu dari ACR122U dan mengirim NFC ID via WebSocket.
+     * Jika bridge tidak aktif, fallback ke Web NFC API (mobile Chrome).
+     */
+    function connectNFCBridge() {
+        const WS_URL = 'ws://localhost:8765';
+
+        updateScannerStatus('waiting', 'Menghubungkan ke NFC Bridge...');
+
+        try {
+            nfcBridgeWS = new WebSocket(WS_URL);
+        } catch (e) {
+            console.warn('[NFC Bridge] Tidak bisa membuat WebSocket:', e);
+            fallbackToWebNFC();
+            return;
+        }
+
+        // ── Connected ──────────────────────────────────────────────────────
+        nfcBridgeWS.onopen = () => {
+            console.log('[NFC Bridge] ✅ Terhubung ke ws://localhost:8765');
+            updateScannerStatus('scanning', 'ACR122U siap — Tempelkan kartu atau HP');
+            showBridgeIndicator(true);
+        };
+
+        // ── Terima pesan dari bridge ───────────────────────────────────────
+        nfcBridgeWS.onmessage = (event) => {
+            let msg;
+            try { msg = JSON.parse(event.data); }
+            catch { return; }
+
+            console.log('[NFC Bridge] Event:', msg);
+
+            switch (msg.type) {
+                case 'card_detected':
+                    if (!msg.nfc_id) {
+                        updateScannerStatus('error', 'UID kartu tidak terbaca');
+                        return;
+                    }
+                    // ── Debounce: timestamp-based, set SEBELUM handle ───────
+                    const now = Date.now();
+                    if (lastScannedUid === msg.nfc_id && (now - scanCooldown) < 10000) {
+                        console.warn(`[NFC Bridge] Duplikat scan diabaikan — cooldown ${Math.round((10000-(now-scanCooldown))/1000)}s`);
+                        return;
+                    }
+                    // Set lock DULU sebelum memanggil handler
+                    lastScannedUid = msg.nfc_id;
+                    scanCooldown = now;
+
+                    handleNFCScan(msg.nfc_id);
+                    break;
+
+                case 'card_removed':
+                    // Tidak perlu action khusus
+                    break;
+
+                case 'reader_connected':
+                    updateScannerStatus('scanning', `Reader: ${msg.reader || 'ACR122U'} — Siap`);
+                    break;
+
+                case 'reader_disconnected':
+                    updateScannerStatus('error', 'NFC Reader dicabut!');
+                    break;
+
+                case 'status':
+                    console.log('[NFC Bridge] Status:', msg.message);
+                    break;
+
+                case 'error':
+                    console.error('[NFC Bridge] Error:', msg.message);
+                    updateScannerStatus('error', `Error: ${msg.message}`);
+                    break;
+            }
+        };
+
+        // ── Error / gagal connect ──────────────────────────────────────────
+        nfcBridgeWS.onerror = (e) => {
+            console.warn('[NFC Bridge] Tidak bisa terhubung. Coba Web NFC / input manual.');
+            showBridgeIndicator(false);
+        };
+
+        // ── Koneksi putus — coba reconnect setiap 5 detik ─────────────────
+        nfcBridgeWS.onclose = () => {
+            showBridgeIndicator(false);
+            if (!nfcBridgeWS._manualClose) {
+                updateScannerStatus('waiting', 'NFC Bridge terputus. Reconnect dalam 5 detik...');
+                setTimeout(connectNFCBridge, 5000);
+            }
+        };
+    }
+
+    /** Tampilkan/sembunyikan indikator bridge aktif */
+    function showBridgeIndicator(active) {
+        let el = document.getElementById('nfcBridgeIndicator');
+        if (!el) return;
+        el.style.display = active ? 'flex' : 'none';
+        el.querySelector('.bridge-dot').className = 'bridge-dot ' + (active ? 'dot-online' : 'dot-offline');
+        el.querySelector('.bridge-label').textContent = active
+            ? 'ACR122U Terhubung'
+            : 'ACR122U Offline';
+    }
+
+    /** Fallback ke Web NFC API (hanya bekerja di Chrome Android) */
+    function fallbackToWebNFC() {
         if ('NDEFReader' in window) {
             setupWebNFC();
         } else {
-            console.log('Web NFC not supported, using manual input only');
-            updateScannerStatus('waiting', 'NFC tidak didukung – Gunakan input manual');
+            updateScannerStatus('waiting', 'Gunakan input manual atau jalankan nfc-bridge.py');
         }
     }
 
@@ -27,10 +137,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             nfcReader = new NDEFReader();
             await nfcReader.scan();
-            updateScannerStatus('scanning', 'Siap scan NFC');
+            updateScannerStatus('scanning', 'Siap scan NFC (Web NFC)');
 
             nfcReader.addEventListener('reading', ({ message, serialNumber }) => {
-                console.log('NFC Tag detected:', serialNumber);
+                console.log('[Web NFC] Tag detected:', serialNumber);
                 handleNFCScan(serialNumber);
             });
 
@@ -38,12 +148,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateScannerStatus('error', 'Error membaca NFC');
             });
         } catch (error) {
-            console.error('Error setting up NFC:', error);
-            updateScannerStatus('waiting', 'Gunakan input manual');
+            console.error('[Web NFC] Error:', error);
+            updateScannerStatus('waiting', 'Gunakan input manual atau jalankan nfc-bridge.py');
         }
     }
 
-    // ─── SCAN HANDLER — hanya LOOKUP, belum check-in ke database ──────────────
+    // ─── SCAN HANDLER — auto check-in langsung (1 tap = 1 check-in) ───────────
     async function handleNFCScan(nfcId) {
         if (isProcessing) return;           // Cegah scan ganda saat masih proses
         isProcessing = true;
@@ -51,28 +161,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateScannerStatus('scanning', 'Memproses...');
 
         try {
-            // Gunakan endpoint /lookup — TIDAK mencatat check-in ke DB
-            const response = await api.lookupMember(nfcId);
+            // Step 1: Lookup member (verifikasi data + cek membership)
+            const lookupResp = await api.lookupMember(nfcId);
 
-            if (response.success && response.data) {
-                currentMember = response.data.user;
-                currentNfcId  = nfcId;
-
-                if (!response.data.has_active_membership) {
-                    updateScannerStatus('error', 'Membership tidak aktif');
-                    showToast('Membership member ini sudah tidak aktif', 'error');
-                    displayMemberInfo(currentMember, false);
-                } else {
-                    displayMemberInfo(currentMember, true);
-                    updateScannerStatus('success', 'Member ditemukan – klik Konfirmasi');
-                }
-            } else {
+            if (!lookupResp.success || !lookupResp.data) {
                 updateScannerStatus('error', 'Member tidak ditemukan');
-                showToast('NFC ID tidak terdaftar', 'error');
+                showToast('NFC ID tidak terdaftar di database', 'error');
+                return;
             }
+
+            currentMember = lookupResp.data.user;
+            currentNfcId  = nfcId;
+
+            // Membership tidak aktif → tampilkan info tapi jangan check-in
+            if (!lookupResp.data.has_active_membership) {
+                updateScannerStatus('error', `${currentMember.name} — Membership tidak aktif`);
+                showToast(`${currentMember.name}: Membership sudah expired`, 'error');
+                displayMemberInfo(currentMember, false);
+                return;
+            }
+
+            // Step 2: Auto check-in langsung (tidak perlu klik konfirmasi)
+            updateScannerStatus('scanning', `${currentMember.name} ditemukan — Check-in...`);
+            const checkinResp = await api.checkInNFC(nfcId);
+
+            if (checkinResp.success) {
+                updateScannerStatus('success', `✅ ${currentMember.name} berhasil check-in!`);
+                displayMemberInfo(currentMember, false); // tampilkan info, nonaktifkan tombol konfirmasi
+                showSuccessModal();
+                await loadTodayCheckins();
+                await loadCheckinHistory();
+
+                // Reset status setelah 3 detik siap untuk scan berikutnya
+                setTimeout(() => {
+                    closeMemberInfo();
+                    updateScannerStatus('scanning', 'Siap — Tempelkan kartu berikutnya');
+                }, 3000);
+            } else {
+                updateScannerStatus('error', checkinResp.message || 'Check-in gagal');
+                showToast(checkinResp.message || 'Check-in gagal', 'error');
+            }
+
         } catch (error) {
-            console.error('Error lookup member:', error);
-            updateScannerStatus('error', 'Gagal membaca data member');
+            console.error('Error auto check-in:', error);
+            updateScannerStatus('error', 'Gagal memproses check-in');
             showToast(error.message || 'Terjadi kesalahan', 'error');
         } finally {
             isProcessing = false;

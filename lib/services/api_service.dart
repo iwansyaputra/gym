@@ -340,7 +340,8 @@ class ApiService {
             userId: u['id'],
             email: u['email'],
             name: u['nama'],
-            cardNumber: c != null ? c['card_number'] : (u['card_number']),
+            // Simpan nfc_id sebagai cardNumber agar bisa dipakai HCE check-in
+            cardNumber: c != null ? (c['nfc_id'] ?? c['card_number']) : null,
             membershipStatus: m != null ? 'Active' : 'Non-Member',
             hp: u['hp'],
             address: u['alamat'],

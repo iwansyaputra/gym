@@ -41,37 +41,68 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
       if (!isCardLoaded) return;
 
       setState(() {
-        statusText = "Reader terhubung!\nMengirim Kartu Member...";
+        // Hanya update status UI — check-in dicatat oleh admin web via ACR122U
+        statusText = "Kartu terkirim ke reader! ✅\nCheck-in dicatat oleh sistem.";
+        isScanning = false;
       });
 
-      _sendCheckIn(nfcPayload);
+      // TIDAK memanggil _sendCheckIn di sini
+      // Agar tidak double check-in dengan admin web yang sudah handle via bridge
     });
   }
 
   Future<void> _loadUserCard() async {
     try {
+      // Prioritas 1: cardNumber dari local storage (= nfc_id di DB)
       final localData = await AuthStorage.getUserData();
-      if (localData != null && localData['nfc_id'] != null) {
+      final cardNumber = localData?['cardNumber'];
+      if (localData != null &&
+          cardNumber != null &&
+          cardNumber.isNotEmpty &&
+          cardNumber != '-') {
         setState(() {
-          nfcPayload = localData['nfc_id'].toString();
+          nfcPayload = cardNumber;
           isCardLoaded = true;
-          statusText = "ID Member Siap: $nfcPayload\n(Tap tombol di bawah)";
+          statusText = "Kartu Siap: $nfcPayload\n(Tap tombol di bawah)";
         });
-      } else {
-        final result = await ApiService.getProfile();
-        if (result['success'] == true && result['data']['user'] != null) {
+        print('== NFC Payload (local cardNumber): $nfcPayload');
+        return;
+      }
+
+      // Prioritas 2: Ambil dari profil API
+      final result = await ApiService.getProfile();
+      if (result['success'] == true && result['data'] != null) {
+        final card = result['data']['card'];
+        final user = result['data']['user'];
+
+        // Gunakan nfc_id dari tabel member_cards jika ada
+        if (card != null && card['nfc_id'] != null) {
           setState(() {
-            nfcPayload = result['data']['user']['id'].toString();
+            nfcPayload = card['nfc_id'].toString();
             isCardLoaded = true;
-            statusText = "ID Member Siap: $nfcPayload\n(Tap tombol di bawah)";
+            statusText = "Kartu Siap: $nfcPayload\n(Tap tombol di bawah)";
           });
+          print('== NFC Payload (profile card.nfc_id): $nfcPayload');
+        } else if (user != null && user['id'] != null) {
+          // Fallback: pakai user_id (backend sudah support lookup by user_id)
+          setState(() {
+            nfcPayload = user['id'].toString();
+            isCardLoaded = true;
+            statusText = "ID Member: $nfcPayload\n(Tap tombol di bawah)";
+          });
+          print('== NFC Payload (user_id fallback): $nfcPayload');
         } else {
           setState(() {
-            statusText = "ID Member belum aktif / tidak ditemukan.";
+            statusText = "Data kartu tidak ditemukan.";
           });
         }
+      } else {
+        setState(() {
+          statusText = "ID Member belum aktif / tidak ditemukan.";
+        });
       }
     } catch (e) {
+      print('== _loadUserCard error: $e');
       setState(() {
         statusText = "Gagal memuat kartu. Pastikan Anda login.";
       });

@@ -3,12 +3,15 @@ const API_CONFIG = {
     // Otomatis deteksi IP/Host agar tidak perlu ganti-ganti saat pindah WiFi
     // Jika admin web dibuka dari file:// di browser, gunakan fallback ke IP server.
     BASE_URL: (() => {
-        const FALLBACK_API_HOST = '192.168.100.45'; // ✅ IP Server (update jika ganti WiFi)
+        const FALLBACK_API_HOST = '192.168.100.160'; // ✅ IP Server (update jika ganti WiFi)
         const hostname = window.location.hostname;
-        // Jika dibuka lewat file:// atau localhost, pakai FALLBACK_API_HOST
-        const useFallback = hostname === '' || hostname === 'localhost' || hostname === '127.0.0.1';
+        // Jika dibuka lewat file://, localhost, atau 127.0.0.1 → pakai IP server langsung
+        // Jika dibuka dari IP/host lain (misal dihosting) → pakai hostname itu
+        const useFallback = (hostname === '' || hostname === 'localhost' || hostname === '127.0.0.1');
         const apiHost = useFallback ? FALLBACK_API_HOST : hostname;
-        return `http://${apiHost}:3000/api`;
+        const url = `http://${apiHost}:3000/api`;
+        console.log('🔗 GymKu API BASE_URL:', url);
+        return url;
     })(),
 
     // Endpoints

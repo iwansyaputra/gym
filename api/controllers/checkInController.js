@@ -1,6 +1,9 @@
 const { pool } = require('../config/database');
 const moment = require('moment');
 
+// ── In-memory mutex: cegah 2 request concurrent untuk user yang sama ──────────
+const _checkinLocks = new Set();
+
 // Lookup member info by NFC ID or User ID (NO check-in recorded)
 const lookupMember = async (req, res) => {
     try {
@@ -87,11 +90,39 @@ const checkInNFC = async (req, res) => {
             });
         }
 
-        // Record check-in
-        await pool.query(
-            'INSERT INTO check_ins (user_id, check_in_method) VALUES (?, ?)',
-            [userId, 'nfc']
-        );
+        // ── Mutex: blok request lain untuk userId yang sama ─────────────────
+        if (_checkinLocks.has(userId)) {
+            return res.status(429).json({
+                success: false,
+                message: 'Check-in sedang diproses. Tunggu sebentar.'
+            });
+        }
+        _checkinLocks.add(userId);
+
+        try {
+            // ── Atomic INSERT: hanya insert jika belum check-in 60 detik terakhir ──
+            // SELECT dan INSERT dalam 1 query → tidak ada race condition
+            const [result] = await pool.query(
+                `INSERT INTO check_ins (user_id, check_in_method)
+                 SELECT ?, 'nfc' FROM DUAL
+                 WHERE NOT EXISTS (
+                     SELECT 1 FROM check_ins
+                     WHERE user_id = ?
+                     AND check_in_time >= NOW() - INTERVAL 60 SECOND
+                 )`,
+                [userId, userId]
+            );
+
+            if (result.affectedRows === 0) {
+                return res.status(429).json({
+                    success: false,
+                    message: 'Sudah check-in baru saja. Tunggu 1 menit sebelum check-in lagi.'
+                });
+            }
+        } finally {
+            // Selalu hapus lock, bahkan jika error
+            _checkinLocks.delete(userId);
+        }
 
         // Get full user info & membership stats for UI display
         const [users] = await pool.query(
