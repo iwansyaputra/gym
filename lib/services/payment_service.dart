@@ -97,4 +97,78 @@ class PaymentService {
       return {'success': false, 'message': 'Error: $e'};
     }
   }
+
+  /// Buat transaksi top up saldo via E-Smartlink payment
+  /// Input: jumlah — nominal top up dalam Rupiah (min 10.000)
+  /// Output: payment_url untuk dibuka di WebView, order_id untuk tracking
+  /// Setelah user bayar, E-Smartlink callback ke backend → saldo otomatis bertambah
+  static Future<Map<String, dynamic>> createTopUpPayment({
+    required int jumlah,
+  }) async {
+    try {
+      final token = await AuthStorage.getToken();
+
+      if (token == null) {
+        throw Exception('Token tidak ditemukan. Silakan login kembali.');
+      }
+
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/payment/topup'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'jumlah': jumlah}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': data['data']};
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Gagal membuat pembayaran top up',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  /// Konfirmasi top up ke backend setelah WebView mendeteksi sukses.
+  /// Backend akan polling E-Smartlink untuk verifikasi lalu kredit saldo.
+  /// Diperlukan karena callback URL tidak bisa diakses dari environment lokal.
+  static Future<Map<String, dynamic>> confirmTopUpPayment({
+    required String orderId,
+  }) async {
+    try {
+      final token = await AuthStorage.getToken();
+      if (token == null) {
+        throw Exception('Token tidak ditemukan. Silakan login kembali.');
+      }
+
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/payment/topup/confirm/$orderId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': data['data'], 'message': data['message']};
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Gagal mengkonfirmasi pembayaran',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
 }
+

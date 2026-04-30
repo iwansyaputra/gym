@@ -150,13 +150,18 @@ class ApiClient {
     }
 
     async updateMembershipPackage(packageId, data) {
-        // Asumsi backend memiliki endpoint PUT /membership/packages/:id atau /admin/packages/:id
         return this.put(`${API_CONFIG.ENDPOINTS.MEMBERSHIP_PACKAGES}/${packageId}`, data);
+    }
+
+    async addMembershipPackage(data) {
+        // POST ke /membership/packages untuk tambah paket baru
+        return this.post(API_CONFIG.ENDPOINTS.MEMBERSHIP_PACKAGES, data);
     }
 
     async extendMembership(packageId) {
         return this.post(API_CONFIG.ENDPOINTS.EXTEND_MEMBERSHIP, { package_id: packageId });
     }
+
 
     // Transaction endpoints
     async getTransactions(params = {}) {

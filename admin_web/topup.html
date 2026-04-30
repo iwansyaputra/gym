@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kelola Saldo Member — GymKu Admin</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .wallet-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .wallet-stat-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 20px; }
+    .wallet-stat-label { font-size:.75rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+    .wallet-stat-value { font-size:1.4rem; font-weight:700; color:var(--text-1); }
+    .wallet-stat-value.green { color:#4ade80; }
+    .saldo-chip { display:inline-flex; align-items:center; gap:5px; background:rgba(99,102,241,.12); color:#818cf8; border-radius:20px; padding:3px 10px; font-size:.8rem; font-weight:600; }
+    .tab-group { display:flex; gap:4px; background:rgba(255,255,255,.06); border-radius:var(--radius-lg); padding:4px; margin-bottom:20px; width:fit-content; }
+    .tab-btn { padding:8px 20px; border:none; border-radius:var(--radius-md); background:transparent; color:var(--text-2); font-size:.85rem; font-weight:600; cursor:pointer; transition:all .2s; }
+    .tab-btn.active { background:var(--surface-1,#1e1e2e); color:var(--text-1); box-shadow:0 1px 4px rgba(0,0,0,.3); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .topup-btn { display:inline-flex; align-items:center; gap:6px; background:var(--primary-600,#4f46e5); color:#fff; border:none; border-radius:var(--radius-md); padding:6px 14px; font-size:.8rem; font-weight:600; cursor:pointer; transition:background .2s; }
+    .topup-btn:hover { background:var(--primary-700,#4338ca); }
+    .history-badge-topup { color:#4ade80; font-weight:700; }
+    .history-badge-debit { color:#f87171; font-weight:700; }
+    .amount-presets { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .preset-btn { padding:6px 14px; border:1px solid var(--border); border-radius:var(--radius-md); background:transparent; color:var(--text-2); font-size:.82rem; cursor:pointer; transition:all .15s; }
+    .preset-btn:hover, .preset-btn.selected { border-color:#6366f1; color:#818cf8; background:rgba(99,102,241,.1); }
+    .saldo-info-box { padding:12px; background:rgba(99,102,241,.08); border-radius:10px; border:1px solid rgba(99,102,241,.2); margin-bottom:14px; display:none; }
+    .saldo-info-label { font-size:.75rem; color:var(--text-3); margin-bottom:4px; }
+    .saldo-info-value { font-size:1.2rem; font-weight:700; color:#818cf8; }
+  </style>
+</head>
+<body class="dashboard-page">
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14 4.14 5.57 2 7.71 3.43 9.14 2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22 14.86 20.57 16.29 22 18.43 19.86 19.86 21.29 21.29 19.86 19.86 18.43 22 16.29 20.57 14.86Z" fill="currentColor"/></svg>
+    </div>
+    <div><div class="brand-name">GymKu</div><div class="brand-tag">Admin Panel</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Menu</div>
+    <a href="dashboard.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" fill="currentColor"/></svg>Dashboard</a>
+    <a href="members.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M16 11C17.66 11 18.99 9.66 18.99 8C18.99 6.34 17.66 5 16 5C14.34 5 13 6.34 13 8C13 9.66 14.34 11 16 11ZM8 11C9.66 11 10.99 9.66 10.99 8C10.99 6.34 9.66 5 8 5C6.34 5 5 6.34 5 8C5 9.66 6.34 11 8 11ZM8 13C5.67 13 1 14.17 1 16.5V19H15V16.5C15 14.17 10.33 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 13.89 17 15.02 17 16.5V19H23V16.5C23 14.17 18.33 13 16 13Z" fill="currentColor"/></svg>Member</a>
+    <a href="checkin.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V9H19V20Z" fill="currentColor"/></svg>Check-in NFC</a>
+    <a href="transactions.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M20 4H4C2.89 4 2 4.89 2 6V18C2 19.11 2.89 20 4 20H20C21.11 20 22 19.11 22 18V6C22 4.89 21.11 4 20 4ZM20 18H4V12H20V18ZM20 8H4V6H20V8Z" fill="currentColor"/></svg>Transaksi</a>
+    <a href="reports.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM9 17H7V10H9V17ZM13 17H11V7H13V17ZM17 17H15V13H17V17Z" fill="currentColor"/></svg>Laporan</a>
+    <a href="packages.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2 0v20c5.07-.5 9-4.79 9-10s-3.93-9.5-9-10zm-1 8.5c-1.93 0-3.5 1.57-3.5 3.5s1.57 3.5 3.5 3.5 3.5-1.57 3.5-3.5-1.57-3.5-3.5-3.5z" fill="currentColor"/></svg>Kelola Harga</a>
+    <a href="topup.html" class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M21 18V19C21 20.1 20.1 21 19 21H5C3.89 21 3 20.1 3 19V5C3 3.9 3.89 3 5 3H19C20.1 3 21 3.9 21 5V6H12C10.89 6 10 6.9 10 8V16C10 17.1 10.89 18 12 18H21ZM12 16H22V8H12V16ZM16 13.5C15.17 13.5 14.5 12.83 14.5 12C14.5 11.17 15.17 10.5 16 10.5C16.83 10.5 17.5 11.17 17.5 12C17.5 12.83 16.83 13.5 16 13.5Z" fill="currentColor"/></svg>
+      Kelola Saldo
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar" id="sidebarAvatar">A</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="adminName">Admin</div>
+        <div class="sidebar-user-role">Administrator</div>
+      </div>
+    </div>
+    <button class="btn-logout" id="logoutBtn">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M17 7L15.59 8.41 18.17 11H8V13H18.17L15.59 15.59 17 17 22 12 17 7ZM4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z" fill="currentColor"/></svg>Keluar
+    </button>
+  </div>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" id="menuToggle"><svg viewBox="0 0 24 24" fill="none"><path d="M3 18H21V16H3V18ZM3 13H21V11H3V13ZM3 6V8H21V6H3Z" fill="currentColor"/></svg></button>
+      <span class="topbar-page-title">Kelola Saldo Member</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-admin">
+        <div class="topbar-avatar" id="topbarAvatar">A</div>
+        <div><div class="topbar-admin-name" id="topbarName">Admin</div><div class="topbar-admin-role">Administrator</div></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content-area">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Kelola Saldo Member</h1>
+        <p>Pantau saldo, lakukan top up, dan lihat riwayat transaksi wallet setiap member</p>
+      </div>
+      <div class="page-header-right">
+        <button class="btn btn-primary btn-sm" id="openTopupModalBtn">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="currentColor"/></svg>
+          Top Up Saldo
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="wallet-stats">
+      <div class="wallet-stat-card">
+        <div class="wallet-stat-label">Member Bersaldo</div>
+        <div class="wallet-stat-value" id="statMemberBersaldo">—</div>
+      </div>
+      <div class="wallet-stat-card">
+        <div class="wallet-stat-label">Total Saldo Beredar</div>
+        <div class="wallet-stat-value green" id="statTotalSaldo">—</div>
+      </div>
+      <div class="wallet-stat-card">
+        <div class="wallet-stat-label">Rata-rata Saldo</div>
+        <div class="wallet-stat-value" id="statAvgSaldo">—</div>
+      </div>
+      <div class="wallet-stat-card">
+        <div class="wallet-stat-label">Total Member</div>
+        <div class="wallet-stat-value" id="statTotalMember">—</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-group">
+      <button class="tab-btn active" data-tab="saldo">Saldo Member</button>
+      <button class="tab-btn" data-tab="riwayat">Riwayat Wallet</button>
+    </div>
+
+    <!-- Tab Saldo Member -->
+    <div class="tab-panel active" id="tab-saldo">
+      <div class="card">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none"><path d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49 20.49 19 15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z" fill="currentColor"/></svg>
+              <input type="text" id="searchSaldo" class="form-control" placeholder="Cari nama, email...">
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <button class="btn btn-secondary btn-sm" id="refreshBtn">
+              <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4C7.58 4 4.01 7.58 4.01 12C4.01 16.42 7.58 20 12 20C15.73 20 18.84 17.45 19.73 14H17.65C16.83 16.33 14.61 18 12 18C8.69 18 6 15.31 6 12C6 8.69 8.69 6 12 6C13.66 6 15.14 6.69 16.22 7.78L13 11H20V4L17.65 6.35Z" fill="currentColor"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Email</th>
+                <th>Status Membership</th>
+                <th>Saldo</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="saldoTableBody">
+              <tr class="skeleton-row"><td colspan="5"><div class="skeleton-text"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Riwayat Wallet -->
+    <div class="tab-panel" id="tab-riwayat">
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Waktu</th>
+                <th>Member</th>
+                <th>Jenis</th>
+                <th>Jumlah</th>
+                <th>Saldo Sebelum</th>
+                <th>Saldo Sesudah</th>
+                <th>Keterangan</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <tr><td colspan="7" class="text-center" style="color:var(--text-3);padding:30px;">Pilih member lalu klik "Riwayat" untuk melihat detail transaksi saldo.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal Top Up Saldo -->
+<div class="modal-overlay" id="topupModal">
+  <div class="modal-box modal-md">
+    <div class="modal-header">
+      <h2 class="modal-title">Top Up Saldo Member</h2>
+      <button class="modal-close" id="closeTopupModal"><svg viewBox="0 0 24 24" fill="none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <form id="topupForm" novalidate>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Pilih Member *</label>
+          <select id="topupUserId" class="form-control" required>
+            <option value="">— pilih member —</option>
+          </select>
+        </div>
+
+        <!-- Saldo saat ini -->
+        <div class="saldo-info-box" id="currentSaldoBox">
+          <div class="saldo-info-label">Saldo Saat Ini</div>
+          <div class="saldo-info-value" id="currentSaldoVal">Rp 0</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:8px;">
+          <label class="form-label">Jumlah Top Up *</label>
+          <input type="number" id="topupJumlah" class="form-control" placeholder="Nominal top up" min="1000" step="1000" required>
+          <div class="amount-presets">
+            <button type="button" class="preset-btn" data-amount="50000">Rp 50.000</button>
+            <button type="button" class="preset-btn" data-amount="100000">Rp 100.000</button>
+            <button type="button" class="preset-btn" data-amount="200000">Rp 200.000</button>
+            <button type="button" class="preset-btn" data-amount="500000">Rp 500.000</button>
+            <button type="button" class="preset-btn" data-amount="1000000">Rp 1.000.000</button>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:14px;margin-bottom:14px;">
+          <label class="form-label">Keterangan</label>
+          <input type="text" id="topupKeterangan" class="form-control" placeholder="Misal: Top up tunai via kasir">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="cancelTopupBtn">Batal</button>
+      <button class="btn btn-primary" id="submitTopupBtn">
+        <span class="btn-text">Top Up Sekarang</span>
+        <div class="btn-loader" id="topupLoader"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Riwayat Per Member -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal-box modal-lg">
+    <div class="modal-header">
+      <h2 class="modal-title" id="historyModalTitle">Riwayat Saldo</h2>
+      <button class="modal-close" id="closeHistoryModal"><svg viewBox="0 0 24 24" fill="none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Waktu</th><th>Jenis</th><th>Jumlah</th><th>Saldo Sebelum</th><th>Saldo Sesudah</th><th>Keterangan</th></tr>
+          </thead>
+          <tbody id="historyModalBody">
+            <tr><td colspan="6" class="text-center">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js?v=20260430b"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/topup.js"></script>
+</body>
+</html>

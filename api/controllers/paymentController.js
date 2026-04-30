@@ -284,7 +284,39 @@ const handleNotification = async (req, res) => {
             orderId
         ]);
 
-        await syncMembershipByTransactionStatus(connection, transaction, newStatus);
+        // Handle berdasarkan jenis transaksi
+        if (transaction.jenis_transaksi === 'topup_saldo' && newStatus === 'success') {
+            // Kredit saldo ke wallet user
+            const jumlah = Number(transaction.jumlah);
+            const userId = transaction.user_id;
+
+            // Pastikan baris wallet ada
+            await connection.query(
+                'INSERT INTO wallets (user_id, saldo) VALUES (?, 0) ON DUPLICATE KEY UPDATE user_id = user_id',
+                [userId]
+            );
+            const [[wallet]] = await connection.query(
+                'SELECT saldo FROM wallets WHERE user_id = ? FOR UPDATE',
+                [userId]
+            );
+            const saldoAwal = parseFloat(wallet.saldo) || 0;
+            const saldoAkhir = saldoAwal + jumlah;
+
+            await connection.query(
+                'UPDATE wallets SET saldo = ? WHERE user_id = ?',
+                [saldoAkhir, userId]
+            );
+            await connection.query(
+                `INSERT INTO wallet_transactions (user_id, jenis, jumlah, saldo_awal, saldo_akhir, keterangan, ref_id)
+                 VALUES (?, 'topup', ?, ?, ?, 'Top up via E-Smartlink', ?)`,
+                [userId, jumlah, saldoAwal, saldoAkhir, transaction.id]
+            );
+            console.log(`[Wallet] Top up saldo berhasil: user_id=${userId}, jumlah=${jumlah}, saldo_akhir=${saldoAkhir}`);
+        } else {
+            // Transaksi membership biasa
+            await syncMembershipByTransactionStatus(connection, transaction, newStatus);
+        }
+
         await connection.commit();
         transactionStarted = false;
 
@@ -300,6 +332,126 @@ const handleNotification = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error processing callback'
+        });
+    } finally {
+        connection.release();
+    }
+};
+
+/// Buat transaksi top up saldo via E-Smartlink payment
+/// Order ID format: TOPUP-{timestamp}-{userId}
+/// Setelah pembayaran sukses, callback akan kredit saldo ke wallet user
+const createTopUpPayment = async (req, res) => {
+    const connection = await pool.getConnection();
+    let transactionStarted = false;
+
+    try {
+        const { jumlah } = req.body;
+        const userId = req.user.userId;
+
+        const nominal = Number(jumlah);
+        if (!nominal || nominal < 10000) {
+            return res.status(400).json({
+                success: false,
+                message: 'Jumlah top up minimal Rp 10.000'
+            });
+        }
+
+        const [users] = await connection.query('SELECT * FROM users WHERE id = ?', [userId]);
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
+        }
+        const user = users[0];
+
+        const orderId = `TOPUP-${Date.now()}-${userId}`;
+
+        const backendPublicUrl =
+            process.env.BACKEND_PUBLIC_URL ||
+            process.env.FRONTEND_URL ||
+            `http://localhost:${process.env.PORT || 3000}`;
+
+        await connection.beginTransaction();
+        transactionStarted = true;
+
+        // Simpan transaksi top up di tabel transactions dengan jenis_transaksi='topup_saldo'
+        const [txResult] = await connection.query(
+            `INSERT INTO transactions (user_id, membership_id, jenis_transaksi, jumlah, metode_pembayaran, status, order_id)
+             VALUES (?, NULL, 'topup_saldo', ?, 'esmartlink', 'pending', ?)`,
+            [userId, nominal, orderId]
+        );
+        const transactionId = txResult.insertId;
+
+        const requestBody = {
+            order_id: orderId,
+            amount: nominal,
+            description: `Top Up Saldo GymKu — Rp ${nominal.toLocaleString('id-ID')}`,
+            customer: {
+                name: user.nama,
+                email: user.email,
+                phone: user.hp || '-'
+            },
+            item: [
+                {
+                    name: 'Top Up Saldo',
+                    amount: nominal,
+                    qty: 1
+                }
+            ],
+            channel: [process.env.ESMARTLINK_CHANNEL || 'VA_CIMB'],
+            type: 'payment-page',
+            payment_mode: process.env.ESMARTLINK_PAYMENT_MODE || 'CLOSE',
+            expired_time: process.env.ESMARTLINK_EXPIRED_TIME || '',
+            callback_url: `${backendPublicUrl}/api/payment/notification`,
+            success_redirect_url: `${backendPublicUrl}/api/payment/finish`,
+            failed_redirect_url: `${backendPublicUrl}/api/payment/error`,
+            return_url: `${backendPublicUrl}/api/payment/pending`
+        };
+
+        const gatewayResponse = await esmartlinkRequest({
+            method: 'POST',
+            path: '/api/payment/create-order',
+            body: requestBody
+        });
+
+        const gatewayData = gatewayResponse?.data || {};
+        const gatewayTransactionId = gatewayData.transaction_id || null;
+        const paymentUrl = gatewayData.payment_url || null;
+
+        if (!paymentUrl) {
+            throw new Error('Payment URL dari E-Smartlink tidak ditemukan');
+        }
+
+        await connection.query(
+            'UPDATE transactions SET bukti_pembayaran = ? WHERE id = ?',
+            [JSON.stringify({ gateway: 'esmartlink', transaction_id: gatewayTransactionId }), transactionId]
+        );
+
+        await connection.commit();
+        transactionStarted = false;
+
+        console.log('[E-Smartlink] Top Up Order Created');
+        console.log(`  order_id  : ${orderId}`);
+        console.log(`  nominal   : ${nominal}`);
+        console.log(`  payment_url: ${paymentUrl}`);
+
+        res.json({
+            success: true,
+            message: 'Link pembayaran top up berhasil dibuat',
+            data: {
+                order_id: orderId,
+                transaction_id: gatewayTransactionId,
+                payment_url: paymentUrl,
+                jumlah: nominal
+            }
+        });
+    } catch (error) {
+        if (transactionStarted) {
+            await connection.rollback();
+        }
+        console.error('Create top up payment error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Terjadi kesalahan pada server'
         });
     } finally {
         connection.release();
@@ -348,11 +500,8 @@ const checkPaymentStatus = async (req, res) => {
                     await syncMembershipByTransactionStatus(connection, transaction, latestStatus);
                     await connection.commit();
                     transaction.status = latestStatus;
-                    if (latestStatus === 'success') {
-                        transaction.membership_status = 'active';
-                    } else if (latestStatus === 'failed') {
-                        transaction.membership_status = 'expired';
-                    }
+                    if (latestStatus === 'success') transaction.membership_status = 'active';
+                    else if (latestStatus === 'failed') transaction.membership_status = 'expired';
                 }
             } catch (gatewayError) {
                 console.warn(`Inquiry E-Smartlink gagal untuk order ${orderId}:`, gatewayError.message);
@@ -375,19 +524,9 @@ const checkPaymentStatus = async (req, res) => {
             }
         });
     } catch (error) {
-        if (connection) {
-            try {
-                await connection.rollback();
-            } catch (rollbackError) {
-                console.error('Rollback check status error:', rollbackError);
-            }
-        }
-
-        console.error('Check payment status (E-Smartlink) error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Terjadi kesalahan pada server'
-        });
+        try { await connection.rollback(); } catch (_) {}
+        console.error('Check payment status error:', error);
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server' });
     } finally {
         connection.release();
     }
@@ -404,17 +543,10 @@ const getPaymentHistory = async (req, res) => {
              ORDER BY t.tanggal_transaksi DESC`,
             [userId]
         );
-
-        res.json({
-            success: true,
-            data: transactions
-        });
+        res.json({ success: true, data: transactions });
     } catch (error) {
         console.error('Get payment history error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Terjadi kesalahan pada server'
-        });
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server' });
     }
 };
 
@@ -430,8 +562,152 @@ const errorPayment = (req, res) => {
     res.send('<h1>Pembayaran Gagal.</h1><p>Silakan coba lagi.</p>');
 };
 
+/// Konfirmasi pembayaran top up — dipanggil dari Flutter setelah WebView
+/// mendeteksi sukses. Polling ke E-Smartlink untuk verifikasi, lalu kredit saldo.
+/// Ini solusi untuk environment development di mana callback URL tidak bisa diakses.
+const confirmTopUpPayment = async (req, res) => {
+    const connection = await pool.getConnection();
+    let transactionStarted = false;
+
+    try {
+        const { order_id: orderId } = req.params;
+        const userId = req.user.userId;
+
+        // 1. Cari transaksi top up milik user ini
+        const [transactions] = await connection.query(
+            `SELECT * FROM transactions WHERE order_id = ? AND user_id = ? AND jenis_transaksi = 'topup_saldo'`,
+            [orderId, userId]
+        );
+
+        if (transactions.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Transaksi top up tidak ditemukan'
+            });
+        }
+
+        const transaction = transactions[0];
+
+        // 2. Kalau sudah sukses sebelumnya, jangan kredit dua kali
+        if (transaction.status === 'success') {
+            return res.json({
+                success: true,
+                message: 'Saldo sudah dikreditkan sebelumnya',
+                alreadyCredited: true
+            });
+        }
+
+        // 3. Inquiry status ke E-Smartlink untuk verifikasi pembayaran
+        let gatewayStatus = null;
+        let gatewayTransactionId = null;
+
+        try {
+            const reference = parseGatewayReference(transaction.bukti_pembayaran);
+            if (reference) {
+                const inquiryRes = await esmartlinkRequest({
+                    method: 'GET',
+                    path: `/api/payment/inquiry-order/${reference}`
+                });
+                gatewayStatus = inquiryRes?.data?.status || inquiryRes?.status || null;
+                gatewayTransactionId = inquiryRes?.data?.transaction_id || reference;
+                console.log(`[TopUp Confirm] order=${orderId} gateway_status=${gatewayStatus}`);
+            }
+        } catch (inquiryErr) {
+            console.warn('[TopUp Confirm] Inquiry gagal, lanjut berdasarkan WebView callback:', inquiryErr.message);
+        }
+
+        const localStatus = mapGatewayStatusToLocal(gatewayStatus || 'SUCCESS');
+
+        // 4. Jika E-Smartlink belum konfirmasi, tolak
+        if (localStatus === 'failed') {
+            await connection.query(
+                'UPDATE transactions SET status = ? WHERE order_id = ?',
+                ['failed', orderId]
+            );
+            return res.status(400).json({
+                success: false,
+                message: 'Pembayaran belum dikonfirmasi oleh gateway'
+            });
+        }
+
+        // 5. Kredit saldo wallet (dalam transaction DB)
+        const jumlah = Number(transaction.jumlah);
+        await connection.beginTransaction();
+        transactionStarted = true;
+
+        // Update status transaksi → success
+        await connection.query(
+            'UPDATE transactions SET status = ?, bukti_pembayaran = ? WHERE order_id = ?',
+            [
+                'success',
+                JSON.stringify({
+                    gateway: 'esmartlink',
+                    transaction_id: gatewayTransactionId,
+                    confirmed_by: 'client_polling',
+                    confirmed_at: new Date().toISOString()
+                }),
+                orderId
+            ]
+        );
+
+        // Upsert wallet
+        await connection.query(
+            'INSERT INTO wallets (user_id, saldo) VALUES (?, 0) ON DUPLICATE KEY UPDATE user_id = user_id',
+            [userId]
+        );
+
+        const [[wallet]] = await connection.query(
+            'SELECT saldo FROM wallets WHERE user_id = ? FOR UPDATE',
+            [userId]
+        );
+        const saldoAwal = parseFloat(wallet.saldo) || 0;
+        const saldoAkhir = saldoAwal + jumlah;
+
+        await connection.query(
+            'UPDATE wallets SET saldo = ? WHERE user_id = ?',
+            [saldoAkhir, userId]
+        );
+
+        // Catat di wallet_transactions
+        await connection.query(
+            `INSERT INTO wallet_transactions (user_id, jenis, jumlah, saldo_awal, saldo_akhir, keterangan)
+             VALUES (?, 'topup', ?, ?, ?, ?)`,
+            [userId, jumlah, saldoAwal, saldoAkhir,
+             `Top up ${jumlah.toLocaleString('id-ID')} via E-Smartlink (${orderId})`]
+        );
+
+        await connection.commit();
+        transactionStarted = false;
+
+        console.log(`[TopUp Confirm] ✅ Saldo dikreditkan: user=${userId} jumlah=${jumlah} saldo_akhir=${saldoAkhir}`);
+
+        res.json({
+            success: true,
+            message: `Saldo berhasil ditambahkan Rp ${jumlah.toLocaleString('id-ID')}`,
+            data: {
+                jumlah,
+                saldo_baru: saldoAkhir,
+                order_id: orderId
+            }
+        });
+    } catch (error) {
+        if (transactionStarted) {
+            try { await connection.rollback(); } catch (_) {}
+        }
+        console.error('[TopUp Confirm] Error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Terjadi kesalahan server'
+        });
+    } finally {
+        connection.release();
+    }
+};
+
 module.exports = {
     createPayment,
+    createTopUpPayment,
+    confirmTopUpPayment,
     handleNotification,
     checkPaymentStatus,
     getPaymentHistory,

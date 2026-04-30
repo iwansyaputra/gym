@@ -904,4 +904,83 @@ class ApiService {
   static Future<void> logout() async {
     await AuthStorage.clearAll();
   }
+
+  // ==================== WALLET / SALDO ENDPOINTS ====================
+
+  /// Ambil saldo wallet user yang sedang login
+  /// Output: data wallet {user_id, saldo, user_name, email}
+  static Future<Map<String, dynamic>> getMyWallet() async {
+    try {
+      final token = await AuthStorage.getToken();
+      if (token == null) return {'success': false, 'message': 'Token tidak ditemukan'};
+
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.baseUrl}${ApiConfig.walletMy}'),
+            headers: ApiConfig.headersWithAuth(token),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {'success': true, 'data': data['data']};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Gagal mengambil saldo'};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan: ${e.toString()}'};
+    }
+  }
+
+  /// Ambil riwayat transaksi wallet user yang sedang login
+  /// Output: list riwayat {jenis, jumlah, saldo_awal, saldo_akhir, keterangan, created_at}
+  static Future<Map<String, dynamic>> getMyWalletHistory() async {
+    try {
+      final token = await AuthStorage.getToken();
+      if (token == null) return {'success': false, 'message': 'Token tidak ditemukan'};
+
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.baseUrl}${ApiConfig.walletMyHistory}'),
+            headers: ApiConfig.headersWithAuth(token),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {'success': true, 'data': data['data'] ?? []};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Gagal mengambil riwayat'};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan: ${e.toString()}'};
+    }
+  }
+
+  /// Perpanjang membership menggunakan saldo wallet
+  /// Input: packageId — ID paket yang dipilih
+  /// Output: data membership baru + info saldo terpotong
+  static Future<Map<String, dynamic>> extendWithWallet({
+    required int packageId,
+  }) async {
+    try {
+      final token = await AuthStorage.getToken();
+      if (token == null) return {'success': false, 'message': 'Token tidak ditemukan'};
+
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}${ApiConfig.walletExtend}'),
+            headers: ApiConfig.headersWithAuth(token),
+            body: jsonEncode({'package_id': packageId}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {'success': true, 'data': data['data'], 'message': data['message']};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Gagal perpanjang membership'};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan: ${e.toString()}'};
+    }
+  }
 }
+

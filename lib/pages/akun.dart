@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage.dart';
 import 'membership_packages_page.dart';
+import 'saldo_page.dart';
 
 class AkunPage extends StatefulWidget {
   const AkunPage({super.key});
@@ -125,6 +126,18 @@ class _AkunPageState extends State<AkunPage> {
                 title: "Chat Admin",
                 subtitle: "Tanya langsung via WhatsApp",
                 onTap: _chatAdmin,
+              ),
+
+              _menuItem(
+                icon: Icons.account_balance_wallet_outlined,
+                title: "Saldo Dompet",
+                subtitle: "Lihat saldo & riwayat top up",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SaldoPage()),
+                  );
+                },
               ),
 
               _menuItem(

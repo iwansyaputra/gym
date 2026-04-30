@@ -3,7 +3,10 @@ import '../services/api_service.dart';
 import 'payment.dart';
 
 class MembershipPackagesPage extends StatefulWidget {
-  const MembershipPackagesPage({super.key});
+  /// [useWallet] jika true, tombol "Pilih Paket" akan memotong saldo
+  /// bukan redirect ke payment gateway
+  final bool useWallet;
+  const MembershipPackagesPage({super.key, this.useWallet = false});
 
   @override
   State<MembershipPackagesPage> createState() => _MembershipPackagesPageState();
@@ -323,7 +326,7 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => _handlePayment(context, slug, price),
+                    onPressed: () => _handlePayment(context, slug, price, packageData: _packages.firstWhere((p) => p['slug'] == slug, orElse: () => {})),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isPopular ? color : const Color(0xFF2A2A2A),
                       foregroundColor: Colors.white,
@@ -334,7 +337,7 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
                       elevation: 0,
                     ),
                     child: Text(
-                      'Pilih Paket $title',
+                      widget.useWallet ? 'Bayar via Saldo' : 'Pilih Paket $title',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -387,8 +390,83 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
   Future<void> _handlePayment(
     BuildContext context,
     String paket,
-    int harga,
-  ) async {
+    int harga, {
+    Map<String, dynamic> packageData = const {},
+  }) async {
+    // Mode bayar via saldo
+    if (widget.useWallet) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Bayar via Saldo',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'Saldo Anda akan dipotong Rp ${_formatPrice(harga)} untuk paket $paket.\nLanjutkan?',
+            style: const TextStyle(color: Colors.grey, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2196F3),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Bayar Sekarang'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true || !context.mounted) return;
+
+      // Cari package_id dari data
+      final pkgId = packageData['id'] ?? packageData['sortValue'];
+      if (pkgId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal: ID paket tidak ditemukan'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      final result = await ApiService.extendWithWallet(packageId: int.parse(pkgId.toString()));
+
+      if (!context.mounted) return;
+
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Membership berhasil diperpanjang!'),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Gagal membayar via saldo'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Mode bayar normal (payment gateway)
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(

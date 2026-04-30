@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('memberGender').value = member.gender || '';
         document.getElementById('memberDob').value = member.date_of_birth ? member.date_of_birth.split('T')[0] : '';
         document.getElementById('memberAddress').value = member.address || '';
-        
+
         let packageId = '';
         if (member.package_name) {
             const foundPackage = allPackages.find(p => p.nama === member.package_name || p.slug === member.package_name);

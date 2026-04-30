@@ -7,6 +7,7 @@ import 'riwayat.dart';
 import 'akun.dart';
 import 'check_in_nfc_page.dart';
 import 'membership_packages_page.dart';
+import 'saldo_page.dart';
 
 class BerandaPage extends StatefulWidget {
   const BerandaPage({super.key});
@@ -18,6 +19,7 @@ class BerandaPage extends StatefulWidget {
 class _BerandaPageState extends State<BerandaPage> {
   int _currentIndex = 0;
   Map<String, dynamic>? _profileData;
+  Map<String, dynamic>? _walletData; // data saldo
   bool _isLoading = true;
 
   @override
@@ -82,6 +84,12 @@ class _BerandaPageState extends State<BerandaPage> {
         }
         _isLoading = false;
       });
+    }
+
+    // 4. Load saldo wallet
+    final walletResult = await ApiService.getMyWallet();
+    if (mounted && walletResult['success'] == true) {
+      setState(() => _walletData = walletResult['data']);
     }
   }
 
@@ -185,6 +193,8 @@ class _BerandaPageState extends State<BerandaPage> {
                   );
                 },
               ),
+              const SizedBox(height: 25),
+              _buildSaldoCard(),   // kartu saldo mini
               const SizedBox(height: 25),
               _buildTransaksiCard(context),
             ],
@@ -338,6 +348,73 @@ class _BerandaPageState extends State<BerandaPage> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildSaldoCard() {
+    final saldo = double.tryParse(_walletData?['saldo']?.toString() ?? '0') ?? 0;
+    final formatted = saldo == 0
+        ? 'Rp 0'
+        : 'Rp ${saldo.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+
+    return InkWell(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SaldoPage()),
+        );
+        _loadData(); // refresh setelah balik
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFF2196F3).withOpacity(0.25)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2196F3).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet,
+                color: Color(0xFF2196F3),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Saldo Dompet',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    formatted,
+                    style: TextStyle(
+                      color: saldo > 0 ? const Color(0xFF2196F3) : Colors.grey,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+          ],
+        ),
       ),
     );
   }

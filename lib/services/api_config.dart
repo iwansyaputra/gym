@@ -14,7 +14,7 @@ class ApiConfig {
   // 📱 KONFIGURASI IP (Pilih salah satu):
 
   // Opsi 1: IP Saat Ini (Ganti sesuai ipconfig)
-  static const String _currentIP = '192.168.100.160'; // ✅ IP WiFi Aktif (ipconfig)
+  static const String _currentIP = '192.168.100.80'; // ✅ IP WiFi Aktif (ipconfig)
 
   // HOSTING (Tidak Aktif - Error 503)
   // static const String _currentIP = 'https://www.bahariinn.com/gym';
@@ -104,6 +104,16 @@ class ApiConfig {
 
   /// Endpoint untuk membuat transaksi pembayaran baru
   static const String createTransaction = '/transactions/create';
+
+  // ==================== WALLET / SALDO ENDPOINTS ====================
+  /// Endpoint untuk melihat saldo wallet sendiri
+  static const String walletMy = '/wallet/my';
+
+  /// Endpoint untuk riwayat wallet sendiri
+  static const String walletMyHistory = '/wallet/my/history';
+
+  /// Endpoint untuk perpanjang membership pakai saldo
+  static const String walletExtend = '/wallet/extend';
 
   // ==================== HTTP HEADERS ====================
 
