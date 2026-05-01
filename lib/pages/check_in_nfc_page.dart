@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:nfc_host_card_emulation/nfc_host_card_emulation.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage.dart';
+import 'membership_packages_page.dart';
 
 class CheckInNfcPage extends StatefulWidget {
   const CheckInNfcPage({super.key});
@@ -53,27 +54,25 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
 
   Future<void> _loadUserCard() async {
     try {
-      // Prioritas 1: cardNumber dari local storage (= nfc_id di DB)
-      final localData = await AuthStorage.getUserData();
-      final cardNumber = localData?['cardNumber'];
-      if (localData != null &&
-          cardNumber != null &&
-          cardNumber.isNotEmpty &&
-          cardNumber != '-') {
-        setState(() {
-          nfcPayload = cardNumber;
-          isCardLoaded = true;
-          statusText = "Kartu Siap: $nfcPayload\n(Tap tombol di bawah)";
-        });
-        print('== NFC Payload (local cardNumber): $nfcPayload');
-        return;
-      }
-
-      // Prioritas 2: Ambil dari profil API
+      // Prioritas 1: Ambil profile terbaru dari API untuk memastikan status keanggotaan real-time
       final result = await ApiService.getProfile();
+      
       if (result['success'] == true && result['data'] != null) {
         final card = result['data']['card'];
         final user = result['data']['user'];
+        final m = result['data']['membership'];
+
+        // Cek status membership
+        bool isActive = (m != null && m['status'] == 'active');
+        
+        if (!isActive) {
+          setState(() {
+            isCardLoaded = false;
+            statusText = "Membership tidak aktif.\nSilakan beli paket terlebih dahulu.";
+          });
+          _showMembershipRequiredDialog();
+          return;
+        }
 
         // Gunakan nfc_id dari tabel member_cards jika ada
         if (card != null && card['nfc_id'] != null) {
@@ -84,7 +83,7 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
           });
           print('== NFC Payload (profile card.nfc_id): $nfcPayload');
         } else if (user != null && user['id'] != null) {
-          // Fallback: pakai user_id (backend sudah support lookup by user_id)
+          // Fallback: pakai user_id
           setState(() {
             nfcPayload = user['id'].toString();
             isCardLoaded = true;
@@ -97,16 +96,86 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
           });
         }
       } else {
-        setState(() {
-          statusText = "ID Member belum aktif / tidak ditemukan.";
-        });
+        // Fallback jika API gagal (misal koneksi internet lambat), cek dari local storage
+        final localData = await AuthStorage.getUserData();
+        final String? localStatus = localData?['membershipStatus'];
+        
+        if (localStatus != 'Active') {
+          setState(() {
+            isCardLoaded = false;
+            statusText = "Membership tidak aktif.";
+          });
+          _showMembershipRequiredDialog();
+          return;
+        }
+
+        final cardNumber = localData?['cardNumber'];
+        if (cardNumber != null && cardNumber.isNotEmpty && cardNumber != '-') {
+          setState(() {
+            nfcPayload = cardNumber;
+            isCardLoaded = true;
+            statusText = "Kartu Siap: $nfcPayload\n(Tap tombol di bawah)";
+          });
+          print('== NFC Payload (local cardNumber): $nfcPayload');
+        } else {
+          setState(() {
+            statusText = "Data kartu tidak ditemukan di perangkat.";
+          });
+        }
       }
     } catch (e) {
       print('== _loadUserCard error: $e');
       setState(() {
-        statusText = "Gagal memuat kartu. Pastikan Anda login.";
+        statusText = "Gagal memuat kartu. Pastikan koneksi internet aktif.";
       });
     }
+  }
+
+  void _showMembershipRequiredDialog() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              SizedBox(width: 10),
+              Text('Akses Ditolak', style: TextStyle(color: Colors.white, fontSize: 18)),
+            ],
+          ),
+          content: const Text(
+            'Anda belum memiliki paket membership aktif atau masa aktif Anda sudah habis. Silakan beli langganan untuk bisa melakukan check-in.',
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Tutup dialog
+                Navigator.pop(context); // Kembali ke beranda
+              },
+              child: const Text('Kembali', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Tutup dialog
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MembershipPackagesPage()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2196F3),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Beli Member', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   @override

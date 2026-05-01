@@ -4,6 +4,14 @@ Sistem manajemen gym lengkap berbasis **Flutter (mobile)**, **Admin Web (HTML/JS
 
 ---
 
+## ✨ Fitur Terbaru (Mei 2026)
+1. **Programming Kartu Fisik NFC**: Mendukung penulisan/pendaftaran ID Member secara langsung ke memori internal kartu fisik (NTAG213 / Mifare Classic 1K) melalui *raw byte APDU*. Penulisan instan dan anti-gagal dengan *automatic authentication* (mengatasi error `SW=6300`).
+2. **NFC Utility Tool di Admin Web**: Tersedia fitur "Baca Kartu" (melihat informasi ID yang ada pada kartu fisik) dan "Format Kartu" (menghapus data dari kartu agar bisa digunakan ulang).
+3. **Proteksi Check-In Berbasis Langganan**: Pada Mobile App, fitur *Check-in NFC* otomatis terblokir jika user berstatus **Non-Member** atau masa berlangganannya telah **kadaluwarsa**. Terdapat *popup redirect* instan menuju halaman pembelian paket.
+4. **Dynamic Membership Dashboard**: Perbaikan logika status UI Flutter (peringatan "Masa aktif hampir habis" tidak lagi muncul di akun non-member). Tombol *call-to-action* otomatis berganti antara "Daftar Membership" dan "Perpanjang Membership".
+
+---
+
 ## 📦 Komponen Sistem
 
 | Komponen | Teknologi | Lokasi | Port |
@@ -325,4 +333,4 @@ ESMARTLINK_BASE_URL=https://api.esmartlink.co.id
 
 ---
 
-*Terakhir diupdate: April 2026*
+*Terakhir diupdate: Mei 2026*

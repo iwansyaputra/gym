@@ -292,7 +292,7 @@ class _BerandaPageState extends State<BerandaPage> {
             ),
           ],
 
-          if (sisaHari <= 5) ...[
+          if (membership != null && sisaHari <= 5) ...[
             const SizedBox(height: 15),
             Container(
               padding: const EdgeInsets.all(12),
@@ -316,6 +316,9 @@ class _BerandaPageState extends State<BerandaPage> {
                 ],
               ),
             ),
+          ],
+
+          if (membership == null || sisaHari <= 5) ...[
             const SizedBox(height: 15),
             SizedBox(
               width: double.infinity,
@@ -340,9 +343,9 @@ class _BerandaPageState extends State<BerandaPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Perpanjang Membership',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                child: Text(
+                  membership != null ? 'Perpanjang Membership' : 'Daftar Membership',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ),

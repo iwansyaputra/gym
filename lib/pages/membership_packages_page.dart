@@ -14,6 +14,8 @@ class MembershipPackagesPage extends StatefulWidget {
 
 class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
   bool _isLoading = true;
+  int _activePromoDiskon = 0;   // % diskon dari promo aktif (0 = tidak ada promo)
+  String _activePromoJudul = '';
   List<Map<String, dynamic>> _packages = const [
     {
       'slug': 'bulanan',
@@ -53,6 +55,7 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
   void initState() {
     super.initState();
     _loadPackages();
+    _loadActivePromo();  // Sinkronisasi diskon promo aktif
   }
 
   Future<void> _loadPackages() async {
@@ -99,11 +102,24 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
       _isLoading = false;
     });
   }
+  // Ambil diskon promo aktif dari backend — dipanggil parallel dengan _loadPackages
+  Future<void> _loadActivePromo() async {
+    final result = await ApiService.getActivePromoDiscount();
+    if (!mounted) return;
+    final promoData = result['data'];
+    if (promoData != null) {
+      setState(() {
+        _activePromoDiskon = (promoData['diskon_persen'] as num?)?.toInt() ?? 0;
+        _activePromoJudul = promoData['judul']?.toString() ?? '';
+      });
+    }
+  }
 
   int? _asInt(dynamic value) {
     if (value is int) return value;
     return int.tryParse(value?.toString() ?? '');
   }
+
 
   List<String> _toStringList(dynamic value) {
     if (value is! List) return const [];
@@ -273,27 +289,79 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
                 ),
                 const SizedBox(height: 24),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      'Rp ',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white.withOpacity(0.7),
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Harga asli dicoret jika ada promo diskon aktif
+                        if (_activePromoDiskon > 0)
+                          Text(
+                            'Rp ${_formatPrice(price)}',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.grey.shade600,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Rp ',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white.withOpacity(0.7),
+                              ),
+                            ),
+                            Text(
+                              _formatPrice(_activePromoDiskon > 0
+                                  ? (price * (100 - _activePromoDiskon) ~/ 100)
+                                  : price),
+                              style: const TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: -1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    Text(
-                      _formatPrice(price),
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: -1,
+                    if (_activePromoDiskon > 0) ...[
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.withOpacity(0.4)),
+                        ),
+                        child: Text(
+                          '-$_activePromoDiskon%',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
+                if (_activePromoDiskon > 0 && _activePromoJudul.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '🏷 $_activePromoJudul',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.green.shade400,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 Divider(color: Colors.white.withOpacity(0.1), height: 1),
                 const SizedBox(height: 24),
@@ -326,7 +394,14 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => _handlePayment(context, slug, price, packageData: _packages.firstWhere((p) => p['slug'] == slug, orElse: () => {})),
+                    onPressed: () {
+                      // Gunakan harga setelah diskon jika ada promo aktif
+                      final finalPrice = _activePromoDiskon > 0
+                          ? (price * (100 - _activePromoDiskon) ~/ 100)
+                          : price;
+                      _handlePayment(context, slug, finalPrice,
+                          packageData: _packages.firstWhere((p) => p['slug'] == slug, orElse: () => {}));
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isPopular ? color : const Color(0xFF2A2A2A),
                       foregroundColor: Colors.white,

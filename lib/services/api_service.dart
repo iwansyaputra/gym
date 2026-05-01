@@ -982,5 +982,22 @@ class ApiService {
       return {'success': false, 'message': 'Terjadi kesalahan: ${e.toString()}'};
     }
   }
-}
 
+  /// Ambil diskon promo aktif tertinggi untuk sinkronisasi harga di membership packages
+  /// Output: {id, judul, diskon_persen} atau null jika tidak ada promo aktif
+  static Future<Map<String, dynamic>> getActivePromoDiscount() async {
+    try {
+      final response = await http
+          .get(Uri.parse('${ApiConfig.baseUrl}${ApiConfig.activePromoDiscount}'))
+          .timeout(const Duration(seconds: 8));
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {'success': true, 'data': data['data']};
+      }
+      return {'success': false, 'data': null};
+    } catch (e) {
+      return {'success': false, 'data': null};
+    }
+  }
+}

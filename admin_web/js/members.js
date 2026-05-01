@@ -196,6 +196,288 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (exportBtn) {
             exportBtn.addEventListener('click', exportToCSV);
         }
+
+        // NFC Write Card button
+        const writeNfcBtn = document.getElementById('writeNfcBtn');
+        if (writeNfcBtn) {
+            writeNfcBtn.addEventListener('click', openNfcWriterModal);
+        }
+
+        // NFC Utility Buttons (Baca & Format)
+        const readNfcBtn = document.getElementById('readNfcBtn');
+        if (readNfcBtn) readNfcBtn.addEventListener('click', () => openNfcUtilModal('read'));
+
+        const eraseNfcBtn = document.getElementById('eraseNfcBtn');
+        if (eraseNfcBtn) eraseNfcBtn.addEventListener('click', () => openNfcUtilModal('erase'));
+    }
+
+    // ─── NFC Card Linker (Daftarkan Kartu) ───────────────────────────────────
+    // Bukan tulis ke kartu — cukup baca UID kartu, lalu simpan ke DB via API.
+    // Proses: pilih member → tempel kartu → UID terbaca instan → simpan ke DB. Selesai!
+    let nfcWriterWS = null;
+    let nfcWriterModeActive = false;
+    let selectedWriteMember = null;
+
+    function openNfcWriterModal() {
+        const modal = document.getElementById('nfcWriterModal');
+        if (!modal) return;
+        modal.classList.add('active');
+        nfcWriterGoStep(1);
+        populateNfcMemberSelect();
+        connectNfcWriterBridge();
+
+        document.getElementById('closeNfcWriterModal').onclick = closeNfcWriterModal;
+        document.getElementById('nfcWriterStartBtn').onclick = nfcWriterStartLink;
+        document.getElementById('nfcWriterCancelBtn').onclick = () => { nfcWriterModeActive = false; nfcWriterGoStep(1); };
+        document.getElementById('nfcWriterRetryBtn').onclick = () => nfcWriterGoStep(1);
+
+        document.getElementById('nfcWriterMemberSelect').onchange = function () {
+            const memberId = parseInt(this.value);
+            selectedWriteMember = allMembers.find(m => m.id === memberId) || null;
+            const preview = document.getElementById('nfcWriterMemberPreview');
+            const startBtn = document.getElementById('nfcWriterStartBtn');
+            if (selectedWriteMember) {
+                document.getElementById('nwPreviewName').textContent = selectedWriteMember.name || '-';
+                document.getElementById('nwPreviewId').textContent = selectedWriteMember.id;
+                document.getElementById('nwPreviewEmail').textContent = selectedWriteMember.email || '-';
+                document.getElementById('nwPreviewPkg').textContent = selectedWriteMember.package_name || 'Belum ada';
+                document.getElementById('nwPreviewNfc').textContent = selectedWriteMember.nfc_id || '(belum ada kartu)';
+                preview.style.display = 'block';
+                startBtn.disabled = false;
+            } else {
+                preview.style.display = 'none';
+                startBtn.disabled = true;
+            }
+        };
+    }
+
+    function closeNfcWriterModal() {
+        const modal = document.getElementById('nfcWriterModal');
+        if (modal) modal.classList.remove('active');
+        nfcWriterModeActive = false;
+        if (nfcWriterWS) { nfcWriterWS._manualClose = true; nfcWriterWS.close(); nfcWriterWS = null; }
+    }
+
+    function nfcWriterGoStep(step) {
+        document.getElementById('nfcStep1').style.display = step === 1 ? 'block' : 'none';
+        document.getElementById('nfcStep2').style.display = step === 2 ? 'block' : 'none';
+        document.getElementById('nfcStep3').style.display = step === 3 ? 'block' : 'none';
+    }
+
+    function populateNfcMemberSelect() {
+        const sel = document.getElementById('nfcWriterMemberSelect');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- Cari dan pilih member --</option>' +
+            allMembers.map(m => `<option value="${m.id}">${m.name} (ID: ${m.id}${m.nfc_id ? ' 🃏' : ''})</option>`).join('');
+    }
+
+    function connectNfcWriterBridge() {
+        const dot = document.getElementById('nfcWriterDot');
+        const label = document.getElementById('nfcWriterBridgeLabel');
+
+        if (nfcWriterWS && nfcWriterWS.readyState === WebSocket.OPEN) {
+            dot.style.background = 'var(--success)';
+            label.textContent = 'ACR122U Terhubung — Siap daftarkan kartu';
+            return;
+        }
+
+        try { nfcWriterWS = new WebSocket('ws://localhost:8765'); }
+        catch (e) {
+            dot.style.background = 'var(--danger)';
+            label.textContent = 'Tidak bisa terhubung ke NFC Bridge';
+            return;
+        }
+
+        nfcWriterWS.onopen = () => {
+            dot.style.background = 'var(--success)';
+            label.textContent = 'ACR122U Terhubung — Siap daftarkan kartu';
+        };
+
+        nfcWriterWS.onmessage = async (event) => {
+            let msg;
+            try { msg = JSON.parse(event.data); } catch { return; }
+
+            if (msg.type === 'status') {
+                // Update status text di step 2 jika sedang menunggu
+                const statusEl = document.getElementById('nfcWriterStatusText');
+                if (statusEl && nfcWriterModeActive) {
+                    statusEl.textContent = msg.message;
+                }
+            } else if (msg.type === 'write_success') {
+                nfcWriterModeActive = false;
+                const nfcId = msg.nfc_id;  // Ini adalah user_id yang ditulis ke kartu
+                // Juga simpan ke DB agar lookup tetap berfungsi
+                try {
+                    await api.linkNfcCard(selectedWriteMember.id, nfcId);
+                } catch (_) { /* tidak masalah jika gagal, kartu sudah tertulis */ }
+                const m = allMembers.find(x => x.id === selectedWriteMember.id);
+                if (m) m.nfc_id = nfcId;
+                showNfcWriteResult(true, `✅ Kartu berhasil diprogram!\nMember: ${selectedWriteMember.name}\nData tertulis: ${nfcId}`);
+            } else if (msg.type === 'write_error') {
+                nfcWriterModeActive = false;
+                showNfcWriteResult(false, `❌ Gagal tulis kartu\n${msg.message || 'Coba lagi dengan kartu NTAG/Ultralight'}`);
+            }
+        };
+
+        nfcWriterWS.onerror = () => {
+            dot.style.background = 'var(--danger)';
+            label.textContent = 'NFC Bridge offline — jalankan nfc-bridge.py';
+        };
+
+        nfcWriterWS.onclose = () => {
+            if (nfcWriterWS && !nfcWriterWS._manualClose) {
+                dot.style.background = 'var(--danger)';
+                label.textContent = 'Koneksi NFC Bridge terputus';
+            }
+        };
+    }
+
+    function nfcWriterStartLink() {
+        if (!selectedWriteMember) return;
+        const ws = nfcWriterWS;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            showToast('NFC Bridge belum terhubung. Pastikan nfc-bridge.py berjalan.', 'error');
+            return;
+        }
+        nfcWriterModeActive = true;
+        document.getElementById('nfcWriterStatusText').textContent = `Tempelkan kartu untuk: ${selectedWriteMember.name}...`;
+        nfcWriterGoStep(2);
+        // Kirim perintah tulis — bridge akan tulis user_id ke kartu saat ditempel
+        ws.send(JSON.stringify({
+            type: 'write_card',
+            user_id: selectedWriteMember.id,
+            user_name: selectedWriteMember.name
+        }));
+    }
+
+    function showNfcWriteResult(success, msg) {
+        nfcWriterGoStep(3);
+        const icon = document.getElementById('nfcWriteResultIcon');
+        const title = document.getElementById('nfcWriteResultTitle');
+        const msgEl = document.getElementById('nfcWriteResultMsg');
+        icon.style.background = success ? 'rgba(34,197,94,.12)' : 'rgba(239,68,68,.12)';
+        icon.style.border = `2px solid ${success ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.3)'}`;
+        icon.style.color = success ? 'var(--success)' : 'var(--danger)';
+        title.textContent = success ? '✅ Kartu Berhasil Didaftarkan!' : '❌ Gagal Daftarkan Kartu';
+        msgEl.textContent = msg;
+    }
+
+    // ─── NFC Utility (Baca & Format) ─────────────────────────────────────────
+    let nfcUtilWS = null;
+    let nfcUtilMode = ''; // 'read' or 'erase'
+
+    function openNfcUtilModal(mode) {
+        nfcUtilMode = mode;
+        const modal = document.getElementById('nfcUtilModal');
+        if (!modal) return;
+        
+        document.getElementById('nfcUtilTitle').textContent = mode === 'read' ? 'Info Kartu NFC' : 'Format Kartu NFC';
+        document.getElementById('nfcUtilPromptTitle').textContent = mode === 'read' ? 'Tempelkan Kartu untuk Dibaca' : 'Tempelkan Kartu untuk Diformat';
+        document.getElementById('nfcUtilWaiting').style.display = 'block';
+        document.getElementById('nfcUtilResult').style.display = 'none';
+        
+        modal.classList.add('active');
+        connectNfcUtilBridge();
+
+        document.getElementById('closeNfcUtilModal').onclick = closeNfcUtilModal;
+        document.getElementById('nfcUtilCancelBtn').onclick = closeNfcUtilModal;
+        document.getElementById('nfcUtilRetryBtn').onclick = () => {
+            document.getElementById('nfcUtilWaiting').style.display = 'block';
+            document.getElementById('nfcUtilResult').style.display = 'none';
+            if(nfcUtilWS && nfcUtilWS.readyState === WebSocket.OPEN) {
+                nfcUtilWS.send(JSON.stringify({ type: mode === 'read' ? 'read_info' : 'erase_card' }));
+            }
+        };
+    }
+
+    function closeNfcUtilModal() {
+        const modal = document.getElementById('nfcUtilModal');
+        if (modal) modal.classList.remove('active');
+        if (nfcUtilWS) { nfcUtilWS._manualClose = true; nfcUtilWS.close(); nfcUtilWS = null; }
+    }
+
+    function connectNfcUtilBridge() {
+        const dot = document.getElementById('nfcUtilDot');
+        const label = document.getElementById('nfcUtilBridgeLabel');
+
+        if (nfcUtilWS && nfcUtilWS.readyState === WebSocket.OPEN) {
+            dot.style.background = 'var(--success)';
+            label.textContent = 'ACR122U Terhubung';
+            nfcUtilWS.send(JSON.stringify({ type: nfcUtilMode === 'read' ? 'read_info' : 'erase_card' }));
+            return;
+        }
+
+        try { nfcUtilWS = new WebSocket('ws://localhost:8765'); }
+        catch (e) {
+            dot.style.background = 'var(--danger)';
+            label.textContent = 'Tidak bisa terhubung ke Bridge';
+            return;
+        }
+
+        nfcUtilWS.onopen = () => {
+            dot.style.background = 'var(--success)';
+            label.textContent = 'ACR122U Terhubung';
+            nfcUtilWS.send(JSON.stringify({ type: nfcUtilMode === 'read' ? 'read_info' : 'erase_card' }));
+        };
+
+        nfcUtilWS.onmessage = async (event) => {
+            let msg;
+            try { msg = JSON.parse(event.data); } catch { return; }
+
+            if (msg.type === 'status') {
+                document.getElementById('nfcUtilStatusText').textContent = msg.message;
+            } else if (msg.type === 'card_info') {
+                document.getElementById('nfcUtilWaiting').style.display = 'none';
+                document.getElementById('nfcUtilResult').style.display = 'block';
+                
+                const icon = document.getElementById('nfcUtilResultIcon');
+                icon.style.background = 'rgba(34,197,94,.12)';
+                icon.style.color = 'var(--success)';
+                document.getElementById('nfcUtilResultTitle').textContent = 'Kartu Terbaca';
+                
+                let infoMsg = `UID Kartu: ${msg.uid}\n`;
+                if (msg.user_id) {
+                    infoMsg += `Data Tersimpan: User ID ${msg.user_id}`;
+                    const member = allMembers.find(m => m.id == msg.user_id);
+                    document.getElementById('nfcUtilMemberInfo').style.display = 'block';
+                    if (member) {
+                        document.getElementById('nfcUtilMemberName').textContent = member.name;
+                        document.getElementById('nfcUtilMemberEmail').textContent = member.email || '-';
+                    } else {
+                        document.getElementById('nfcUtilMemberName').textContent = 'Member Tidak Ditemukan';
+                        document.getElementById('nfcUtilMemberEmail').textContent = '-';
+                    }
+                } else {
+                    infoMsg += `Status: Kosong (Tidak ada data member)`;
+                    document.getElementById('nfcUtilMemberInfo').style.display = 'none';
+                }
+                document.getElementById('nfcUtilResultMsg').textContent = infoMsg;
+                
+            } else if (msg.type === 'erase_success' || msg.type === 'erase_error') {
+                document.getElementById('nfcUtilWaiting').style.display = 'none';
+                document.getElementById('nfcUtilResult').style.display = 'block';
+                document.getElementById('nfcUtilMemberInfo').style.display = 'none';
+                
+                const success = msg.type === 'erase_success';
+                const icon = document.getElementById('nfcUtilResultIcon');
+                icon.style.background = success ? 'rgba(34,197,94,.12)' : 'rgba(239,68,68,.12)';
+                icon.style.color = success ? 'var(--success)' : 'var(--danger)';
+                document.getElementById('nfcUtilResultTitle').textContent = success ? 'Kartu Diformat' : 'Gagal Format';
+                document.getElementById('nfcUtilResultMsg').textContent = msg.message;
+            }
+        };
+
+        nfcUtilWS.onerror = () => {
+            dot.style.background = 'var(--danger)';
+            label.textContent = 'NFC Bridge offline';
+        };
+
+        nfcUtilWS.onclose = () => {
+            if (nfcUtilWS && !nfcUtilWS._manualClose) {
+                dot.style.background = 'var(--danger)';
+                label.textContent = 'Koneksi Bridge terputus';
+            }
+        };
     }
 
     // Apply filters

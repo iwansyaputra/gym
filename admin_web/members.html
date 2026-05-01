@@ -30,15 +30,12 @@
           <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" fill="currentColor" />
         </svg>Dashboard</a>
       <a href="members.html" class="nav-item active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M16 11C17.66 11 18.99 9.66 18.99 8C18.99 6.34 17.66 5 16 5C14.34 5 13 6.34 13 8C13 9.66 14.34 11 16 11ZM8 11C9.66 11 10.99 9.66 10.99 8C10.99 6.34 9.66 5 8 5C6.34 5 5 6.34 5 8C5 9.66 6.34 11 8 11ZM8 13C5.67 13 1 14.17 1 16.5V19H15V16.5C15 14.17 10.33 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 13.89 17 15.02 17 16.5V19H23V16.5C23 14.17 18.33 13 16 13Z"
-            fill="currentColor" />
+          <path d="M16 11C17.66 11 18.99 9.66 18.99 8C18.99 6.34 17.66 5 16 5C14.34 5 13 6.34 13 8C13 9.66 14.34 11 16 11ZM8 11C9.66 11 10.99 9.66 10.99 8C10.99 6.34 9.66 5 8 5C6.34 5 5 6.34 5 8C5 9.66 6.34 11 8 11ZM8 13C5.67 13 1 14.17 1 16.5V19H15V16.5C15 14.17 10.33 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 13.89 17 15.02 17 16.5V19H23V16.5C23 14.17 18.33 13 16 13Z" fill="currentColor" />
         </svg>Member</a>
       <a href="checkin.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V9H19V20Z"
-            fill="currentColor" />
+          <path d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V9H19V20Z" fill="currentColor" />
         </svg>Check-in NFC</a>
+      <a href="promos.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M21.41 11.58L12.41 2.58C12.05 2.22 11.55 2 11 2H4C2.9 2 2 2.9 2 4V11C2 11.55 2.22 12.05 2.59 12.42L11.59 21.42C11.95 21.78 12.45 22 13 22C13.55 22 14.05 21.78 14.41 21.41L21.41 14.41C21.78 14.05 22 13.55 22 13C22 12.45 21.77 11.94 21.41 11.58ZM5.5 7C4.67 7 4 6.33 4 5.5C4 4.67 4.67 4 5.5 4C6.33 4 7 4.67 7 5.5C7 6.33 6.33 7 5.5 7Z" fill="currentColor"/></svg>Promo</a>
       <a href="transactions.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none">
           <path
             d="M20 4H4C2.89 4 2 4.89 2 6V18C2 19.11 2.89 20 4 20H20C21.11 20 22 19.11 22 18V6C22 4.89 21.11 4 20 4ZM20 18H4V12H20V18ZM20 8H4V6H20V8Z"
@@ -104,11 +101,23 @@
         <div class="page-header-right">
           <button class="btn btn-secondary btn-sm" id="exportBtn">
             <svg viewBox="0 0 24 24" fill="none">
-              <path
-                d="M19 12V19H5V12H3V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V12H19ZM13 12.67L15.59 10.09 17 11.5 12 16.5 7 11.5 8.41 10.09 11 12.67V3H13V12.67Z"
-                fill="currentColor" />
+              <path d="M19 12V19H5V12H3V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V12H19ZM13 12.67L15.59 10.09 17 11.5 12 16.5 7 11.5 8.41 10.09 11 12.67V3H13V12.67Z" fill="currentColor" />
             </svg>
             Export CSV
+          </button>
+          <button class="btn btn-secondary btn-sm" id="readNfcBtn">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/></svg>
+            Baca Kartu
+          </button>
+          <button class="btn btn-secondary btn-sm" id="eraseNfcBtn">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12V5z" fill="currentColor"/></svg>
+            Format Kartu
+          </button>
+          <button class="btn btn-secondary btn-sm" id="writeNfcBtn">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16ZM9 9H7V11H9V9ZM13 9H11V11H13V9ZM17 9H15V11H17V9Z" fill="currentColor" />
+            </svg>
+            Daftarkan Kartu NFC
           </button>
           <button class="btn btn-primary btn-sm" id="addMemberBtn">
             <svg viewBox="0 0 24 24" fill="none">
@@ -284,6 +293,108 @@
           <span class="btn-text">Simpan</span>
           <div class="btn-loader" id="submitLoader"></div>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NFC Card Linker Modal -->
+  <div class="modal-overlay" id="nfcWriterModal">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h2 class="modal-title">Daftarkan Kartu NFC ke Member</h2>
+        <button class="modal-close" id="closeNfcWriterModal"><svg viewBox="0 0 24 24" fill="none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z" fill="currentColor"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <!-- Bridge Status -->
+        <div id="nfcWriterBridgeStatus" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border-radius:var(--r-md);border:1px solid var(--border);margin-bottom:18px;">
+          <span id="nfcWriterDot" style="width:9px;height:9px;border-radius:50%;background:var(--danger);flex-shrink:0;"></span>
+          <span id="nfcWriterBridgeLabel" style="font-size:.8rem;font-weight:600;color:var(--text-2);">Menghubungkan ke NFC Bridge...</span>
+        </div>
+        <!-- Step 1: pilih member -->
+        <div id="nfcStep1">
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">Pilih Member</label>
+            <select id="nfcWriterMemberSelect" class="form-control">
+              <option value="">-- Cari dan pilih member --</option>
+            </select>
+          </div>
+          <div id="nfcWriterMemberPreview" style="display:none;padding:12px;background:var(--surface-2);border-radius:var(--r-md);border:1px solid var(--border);margin-bottom:14px;">
+            <div style="font-size:.8rem;color:var(--text-3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Preview Data Member</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div><span style="font-size:.75rem;color:var(--text-3);">Nama</span><div style="font-size:.9rem;color:var(--text-1);font-weight:600;" id="nwPreviewName">-</div></div>
+              <div><span style="font-size:.75rem;color:var(--text-3);">User ID</span><div style="font-size:.9rem;color:var(--text-1);font-weight:600;" id="nwPreviewId">-</div></div>
+              <div><span style="font-size:.75rem;color:var(--text-3);">Email</span><div style="font-size:.9rem;color:var(--text-1);font-weight:600;" id="nwPreviewEmail">-</div></div>
+              <div><span style="font-size:.75rem;color:var(--text-3);">Paket</span><div style="font-size:.9rem;color:var(--text-1);font-weight:600;" id="nwPreviewPkg">-</div></div>
+              <div style="grid-column:1/-1;"><span style="font-size:.75rem;color:var(--text-3);">Kartu NFC Terdaftar</span><div style="font-size:.9rem;color:var(--text-2);font-weight:600;font-family:monospace;" id="nwPreviewNfc">(belum ada kartu)</div></div>
+            </div>
+          </div>
+          <div style="padding:10px 12px;background:rgba(99,102,241,.08);border-radius:var(--r-md);border:1px solid rgba(99,102,241,.15);margin-bottom:14px;">
+            <p style="font-size:.82rem;color:var(--text-2);margin:0;">💡 <strong>Cara kerja:</strong> Tempelkan kartu NFC kosong ke ACR122U — bridge membaca UID kartu secara instan (~50ms), lalu UID disimpan ke database. <strong>Tidak ada data yang ditulis ke kartu.</strong></p>
+          </div>
+          <button class="btn btn-primary btn-block" id="nfcWriterStartBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none"><path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z" fill="currentColor"/></svg>
+            Daftarkan Kartu ke Member Ini
+          </button>
+        </div>
+        <!-- Step 2: waiting to tap -->
+        <div id="nfcStep2" style="display:none;text-align:center;padding:20px 0;">
+          <div class="scanner-visual" style="margin:0 auto 16px;">
+            <div class="scanner-ring"></div><div class="scanner-ring"></div><div class="scanner-ring"></div>
+            <div class="scanner-core"><svg viewBox="0 0 24 24" fill="none"><path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z" fill="currentColor"/></svg></div>
+          </div>
+          <div style="font-size:1rem;font-weight:700;color:var(--text-1);margin-bottom:6px;">Tempelkan Kartu NFC ke Reader</div>
+          <div style="font-size:.85rem;color:var(--text-2);" id="nfcWriterStatusText">Menunggu kartu...</div>
+          <button class="btn btn-ghost btn-sm" id="nfcWriterCancelBtn" style="margin-top:16px;">Batal</button>
+        </div>
+        <!-- Step 3: result -->
+        <div id="nfcStep3" style="display:none;text-align:center;padding:20px 0;">
+          <div id="nfcWriteResultIcon" style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 16.17L4.83 12 3.41 13.41 9 19 21 7 19.59 5.59 9 16.17Z" fill="currentColor"/></svg>
+          </div>
+          <div style="font-size:1rem;font-weight:700;color:var(--text-1);margin-bottom:6px;" id="nfcWriteResultTitle">Berhasil!</div>
+          <div style="font-size:.85rem;color:var(--text-2);white-space:pre-line;" id="nfcWriteResultMsg"></div>
+          <button class="btn btn-primary btn-sm" id="nfcWriterRetryBtn" style="margin-top:16px;">Daftarkan Kartu Lain</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NFC Utility Modal -->
+  <div class="modal-overlay" id="nfcUtilModal">
+    <div class="modal-box modal-md">
+      <div class="modal-header">
+        <h2 class="modal-title" id="nfcUtilTitle">Info Kartu NFC</h2>
+        <button class="modal-close" id="closeNfcUtilModal"><svg viewBox="0 0 24 24" fill="none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z" fill="currentColor"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div id="nfcUtilBridgeStatus" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border-radius:var(--r-md);border:1px solid var(--border);margin-bottom:18px;">
+          <span id="nfcUtilDot" style="width:9px;height:9px;border-radius:50%;background:var(--danger);flex-shrink:0;"></span>
+          <span id="nfcUtilBridgeLabel" style="font-size:.8rem;font-weight:600;color:var(--text-2);">Menghubungkan ke NFC Bridge...</span>
+        </div>
+        
+        <div id="nfcUtilWaiting" style="text-align:center;padding:20px 0;">
+          <div class="scanner-visual" style="margin:0 auto 16px;">
+            <div class="scanner-ring"></div><div class="scanner-ring"></div><div class="scanner-ring"></div>
+            <div class="scanner-core"><svg viewBox="0 0 24 24" fill="none"><path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z" fill="currentColor"/></svg></div>
+          </div>
+          <div style="font-size:1rem;font-weight:700;color:var(--text-1);margin-bottom:6px;" id="nfcUtilPromptTitle">Tempelkan Kartu NFC ke Reader</div>
+          <div style="font-size:.85rem;color:var(--text-2);" id="nfcUtilStatusText">Menunggu kartu...</div>
+          <button class="btn btn-ghost btn-sm" id="nfcUtilCancelBtn" style="margin-top:16px;">Batal</button>
+        </div>
+
+        <div id="nfcUtilResult" style="display:none;text-align:center;padding:20px 0;">
+          <div id="nfcUtilResultIcon" style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 16.17L4.83 12 3.41 13.41 9 19 21 7 19.59 5.59 9 16.17Z" fill="currentColor"/></svg>
+          </div>
+          <div style="font-size:1rem;font-weight:700;color:var(--text-1);margin-bottom:6px;" id="nfcUtilResultTitle">Selesai</div>
+          <div style="font-size:.85rem;color:var(--text-2);white-space:pre-line;" id="nfcUtilResultMsg"></div>
+          <div id="nfcUtilMemberInfo" style="display:none;margin-top:16px;text-align:left;background:var(--surface-2);padding:12px;border-radius:var(--r-md);border:1px solid var(--border);">
+             <div style="font-size:.75rem;color:var(--text-3);margin-bottom:6px;font-weight:600;">Data Pemilik Kartu:</div>
+             <div style="font-size:.9rem;color:var(--text-1);"><strong id="nfcUtilMemberName">-</strong></div>
+             <div style="font-size:.8rem;color:var(--text-2);" id="nfcUtilMemberEmail">-</div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="nfcUtilRetryBtn" style="margin-top:16px;">Ulangi</button>
+        </div>
       </div>
     </div>
   </div>

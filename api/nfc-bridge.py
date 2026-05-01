@@ -1,14 +1,10 @@
+# -*- coding: utf-8 -*-
 """
-NFC Bridge Server — ACR122U → WebSocket → checkin.html
-========================================================
-Membaca data HCE dari Flutter (nfc_host_card_emulation) dengan AID: A0 00 DA DA DA DA DA
-
-Alur pembacaan:
-  1. HP Android menempel ke ACR122U (HCE aktif)
-  2. Bridge kirim SELECT AID ke HP
-  3. HP merespons dengan nfc_id (bytes ASCII dari nfc_id member)
-  4. Bridge decode bytes → string nfc_id
-  5. Kirim ke browser via WebSocket
+NFC Bridge Server - ACR122U -> WebSocket -> checkin.html / members.html
+========================================================================
+Fitur:
+  - READ: Baca nfc_id dari HP Android HCE / kartu NFC fisik -> kirim ke browser
+  - WRITE: Terima perintah write_card dari browser -> tulis user_id ke kartu NFC
 
 Persyaratan:
     pip install pyscard websockets
@@ -52,6 +48,11 @@ log = logging.getLogger("NFCBridge")
 connected_clients = set()
 card_event_queue = asyncio.Queue()
 
+# Mode bridge saat ini: 'read' atau 'write'
+_bridge_mode = 'read'
+# Koneksi kartu aktif (untuk mode write)
+_active_connection = None
+
 # ──────────────────────────────────────────────────────────────────────────────
 # APDU Commands
 # ──────────────────────────────────────────────────────────────────────────────
@@ -82,6 +83,91 @@ def uid_to_nfc_id(uid_bytes: list) -> str:
     four_bytes = uid_bytes[:4]
     val = int.from_bytes(bytes(four_bytes), byteorder='big')
     return str(val).zfill(10)
+
+
+def read_uid_fast(connection) -> dict:
+    """Baca UID kartu fisik langsung — 1 APDU, sangat cepat (~50ms)."""
+    try:
+        uid_data, sw1, sw2 = connection.transmit(GET_UID_APDU)
+        if sw1 == 0x90 and sw2 == 0x00 and uid_data:
+            uid_hex = bytes_to_hex_str(uid_data)
+            nfc_id  = uid_to_nfc_id(uid_data)
+            log.info(f"✅ UID kartu: {uid_hex} → nfc_id: {nfc_id}")
+            return {'nfc_id': nfc_id, 'source': 'uid', 'raw': uid_hex}
+    except Exception as e:
+        log.error(f"Baca UID gagal: {e}")
+    return {'nfc_id': None, 'source': 'error', 'raw': ''}
+
+
+def write_user_id_to_card(connection, user_id: int) -> dict:
+    """
+    Tulis user_id sebagai raw ASCII bytes ke block 4 (Mifare) atau page 4 (NTAG).
+    """
+    try:
+        user_id_bytes = str(user_id).encode('ascii')
+        chunk = list(user_id_bytes)
+        if len(chunk) > 16:
+            chunk = chunk[:16]
+        chunk += [0x00] * (16 - len(chunk))  # Pad to 16 bytes
+
+        # 1. Coba load key (Default FF FF FF FF FF FF)
+        connection.transmit([0xFF, 0x82, 0x00, 0x00, 0x06, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+        # 2. Coba authenticate block 4 (untuk Mifare Classic)
+        connection.transmit([0xFF, 0x86, 0x00, 0x00, 0x05, 0x01, 0x00, 0x04, 0x60, 0x00])
+
+        # 3. Tulis 16 bytes ke block/page 4
+        write_apdu = [0xFF, 0xD6, 0x00, 0x04, 0x10] + chunk
+        _, sw1, sw2 = connection.transmit(write_apdu)
+        
+        if sw1 == 0x90 and sw2 == 0x00:
+            log.info(f'✅ user_id={user_id} berhasil ditulis ke kartu (16 bytes)')
+            return {'success': True}
+        else:
+            return {'success': False, 'error': f'Write gagal di page/block 4: SW={sw1:02X}{sw2:02X}'}
+    except Exception as e:
+        log.error(f'Error write kartu: {e}')
+        return {'success': False, 'error': str(e)}
+
+
+def read_card_user_id(connection) -> dict:
+    """
+    Baca user_id yang tertulis di block/page 4 kartu.
+    """
+    try:
+        # Authenticate untuk Mifare
+        connection.transmit([0xFF, 0x82, 0x00, 0x00, 0x06, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+        connection.transmit([0xFF, 0x86, 0x00, 0x00, 0x05, 0x01, 0x00, 0x04, 0x60, 0x00])
+
+        # Baca 16 bytes
+        read_apdu = [0xFF, 0xB0, 0x00, 0x04, 0x10]
+        data, sw1, sw2 = connection.transmit(read_apdu)
+        if sw1 == 0x90 and sw2 == 0x00 and data:
+            raw = bytes(data)
+            user_id_str = raw.split(b'\x00')[0].decode('ascii', errors='ignore').strip()
+            if user_id_str and user_id_str.isdigit():
+                log.info(f'✅ Kartu terprogram: user_id={user_id_str}')
+                return {'nfc_id': user_id_str, 'source': 'card_written'}
+    except Exception as e:
+        log.warning(f'Baca page kartu gagal (mungkin bukan kartu terprogram): {e}')
+    return {'nfc_id': None, 'source': 'none'}
+
+
+def erase_card_data(connection) -> dict:
+    """Hapus data dari block/page 4 dengan menimpanya dengan 0x00 (16 bytes)."""
+    try:
+        connection.transmit([0xFF, 0x82, 0x00, 0x00, 0x06, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+        connection.transmit([0xFF, 0x86, 0x00, 0x00, 0x05, 0x01, 0x00, 0x04, 0x60, 0x00])
+
+        write_apdu = [0xFF, 0xD6, 0x00, 0x04, 0x10] + ([0x00] * 16)
+        _, sw1, sw2 = connection.transmit(write_apdu)
+        if sw1 == 0x90 and sw2 == 0x00:
+            log.info('✅ Kartu berhasil diformat (data dihapus)')
+            return {'success': True}
+        else:
+            return {'success': False, 'error': f'Gagal menghapus page/block 4: SW={sw1:02X}{sw2:02X}'}
+    except Exception as e:
+        log.error(f'Error erase kartu: {e}')
+        return {'success': False, 'error': str(e)}
 
 
 def read_hce_nfc_id(connection) -> dict:
@@ -173,20 +259,94 @@ _last_sent: dict = {}
 COOLDOWN_SECONDS = 5  # Minimal jarak antar event untuk NFC ID yang sama
 
 
+# write_ndef_to_card dihapus — diganti write_user_id_to_card (raw page, jauh lebih cepat)
+
+
 class NFCCardObserver(CardObserver):
     def __init__(self, loop):
         self.loop = loop
 
     def update(self, observable, actions):
+        global _active_connection, _bridge_mode, _pending_write_user_id
         (added_cards, removed_cards) = actions
 
         for card in added_cards:
             try:
                 card.connection = card.createConnection()
                 card.connection.connect()
-                log.info("Kartu/HP terdeteksi! Membaca data...")
+                _active_connection = card.connection
+                log.info("Kartu/HP terdeteksi!")
 
-                result = read_hce_nfc_id(card.connection)
+                if _bridge_mode == 'link_card':
+                    # Mode link_card: baca UID instan (1 APDU), kirim ke browser
+                    result = read_uid_fast(card.connection)
+                    payload = {
+                        "type": "card_uid_ready",
+                        "nfc_id": result['nfc_id'],
+                        "raw": result['raw'],
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                    self.loop.call_soon_threadsafe(card_event_queue.put_nowait, payload)
+                    _bridge_mode = 'read'  # Kembali ke read mode otomatis
+                    continue
+
+                if _bridge_mode == 'write_id':
+                    # Mode write_id: tulis user_id ke kartu sekarang juga
+                    # _pending_write_user_id diisi oleh ws_handler saat browser kirim write_card
+                    uid_result = read_uid_fast(card.connection)
+                    result_write = write_user_id_to_card(card.connection, _pending_write_user_id)
+                    payload = {
+                        "type": "write_success" if result_write['success'] else "write_error",
+                        "nfc_id": str(_pending_write_user_id),
+                        "uid": uid_result.get('nfc_id', ''),
+                        "message": f"user_id {_pending_write_user_id} berhasil ditulis ke kartu" if result_write['success'] else result_write.get('error', 'Gagal'),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                    _bridge_mode = 'read'
+                    self.loop.call_soon_threadsafe(card_event_queue.put_nowait, payload)
+                    continue
+
+                if _bridge_mode == 'erase_card':
+                    # Mode erase_card: hapus data user_id dari kartu
+                    result_erase = erase_card_data(card.connection)
+                    payload = {
+                        "type": "erase_success" if result_erase['success'] else "erase_error",
+                        "message": "Data kartu berhasil dihapus" if result_erase['success'] else result_erase.get('error', 'Gagal'),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                    _bridge_mode = 'read'
+                    self.loop.call_soon_threadsafe(card_event_queue.put_nowait, payload)
+                    continue
+
+                if _bridge_mode == 'read_info':
+                    # Mode read_info: hanya baca kartu (tidak checkin)
+                    written = read_card_user_id(card.connection)
+                    uid_res = read_uid_fast(card.connection)
+                    payload = {
+                        "type": "card_info",
+                        "user_id": written['nfc_id'] if written['nfc_id'] else None,
+                        "uid": uid_res['nfc_id'],
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    _bridge_mode = 'read'
+                    self.loop.call_soon_threadsafe(card_event_queue.put_nowait, payload)
+                    continue
+
+                # Mode read (default) — coba baca data tertulis dulu, lalu HCE, lalu UID
+                log.info("Membaca UID / HCE data...")
+                # Prioritas 1: Kartu yang sudah diprogramkan (baca page 4)
+                written = read_card_user_id(card.connection)
+                if written['nfc_id']:
+                    result = written
+                    result['raw'] = ''
+                else:
+                    # Prioritas 2: HCE dari Flutter / kartu fisik UID
+                    uid_result = read_uid_fast(card.connection)
+                    if uid_result['nfc_id']:
+                        hce_result = read_hce_nfc_id(card.connection)
+                        result = hce_result if hce_result['nfc_id'] and hce_result['source'] != 'uid' else uid_result
+                    else:
+                        result = read_hce_nfc_id(card.connection)
 
                 if result['nfc_id']:
                     nfc_id = result['nfc_id']
@@ -237,6 +397,9 @@ class NFCCardObserver(CardObserver):
 # ──────────────────────────────────────────────────────────────────────────────
 # WebSocket Server
 # ──────────────────────────────────────────────────────────────────────────────
+# user_id yang akan ditulis ke kartu berikutnya saat mode write_id
+_pending_write_user_id: int = 0
+# ──────────────────────────────────────────────────────────────────────────────
 async def broadcast(data: dict):
     if not connected_clients:
         return
@@ -257,14 +420,54 @@ async def forward_card_events():
 
 
 async def ws_handler(websocket, path=None):
+    global _bridge_mode, _pending_write_user_id
     connected_clients.add(websocket)
     log.info(f"Browser terhubung. Total: {len(connected_clients)}")
     await websocket.send(json.dumps({
         "type": "status",
-        "message": "NFC Bridge aktif. Tempelkan HP ke ACR122U..."
+        "message": "NFC Bridge aktif. Tempelkan HP/kartu ke ACR122U..."
     }))
     try:
-        await websocket.wait_closed()
+        async for raw_msg in websocket:
+            try:
+                msg = json.loads(raw_msg)
+            except Exception:
+                continue
+
+            msg_type = msg.get('type', '')
+
+            if msg_type == 'set_mode':
+                _bridge_mode = msg.get('mode', 'read')
+                log.info(f"Mode bridge: {_bridge_mode}")
+                await websocket.send(json.dumps({'type': 'status', 'message': f'Mode: {_bridge_mode}'}))
+
+            elif msg_type == 'write_card':
+                # Browser kirim user_id yang harus ditulis ke kartu
+                # Bridge masuk mode write_id — saat kartu ditempel, langsung tulis
+                user_id = msg.get('user_id')
+                if not user_id:
+                    await websocket.send(json.dumps({'type': 'write_error', 'message': 'user_id kosong'}))
+                    continue
+                _pending_write_user_id = int(user_id)
+                _bridge_mode = 'write_id'
+                log.info(f"[write_id] Siap tulis user_id={user_id} ke kartu berikutnya")
+                await websocket.send(json.dumps({
+                    'type': 'status',
+                    'message': f'Siap tulis user_id={user_id}. Tempelkan kartu NFC ke reader...'
+                }))
+
+            elif msg_type == 'erase_card':
+                _bridge_mode = 'erase_card'
+                log.info("[erase_card] Siap menghapus data kartu berikutnya")
+                await websocket.send(json.dumps({'type': 'status', 'message': 'Siap menghapus data, tempelkan kartu...'}))
+
+            elif msg_type == 'read_info':
+                _bridge_mode = 'read_info'
+                log.info("[read_info] Siap membaca data kartu berikutnya")
+                await websocket.send(json.dumps({'type': 'status', 'message': 'Siap membaca kartu, tempelkan kartu...'}))
+
+    except Exception:
+        pass
     finally:
         connected_clients.discard(websocket)
         log.info(f"Browser terputus. Total: {len(connected_clients)}")

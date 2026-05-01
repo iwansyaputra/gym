@@ -123,6 +123,11 @@ class ApiClient {
         return this.delete(`/admin/users/${userId}`);
     }
 
+    async linkNfcCard(userId, nfcId) {
+        // Simpan nfc_id kartu fisik ke member di database
+        return this.put(`/admin/users/${userId}`, { nfc_id: nfcId });
+    }
+
     // Check-in endpoints
     async lookupMember(nfcId) {
         return this.post('/check-in/lookup', { nfc_id: nfcId });
