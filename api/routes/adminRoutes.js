@@ -32,4 +32,16 @@ router.get('/transactions', adminController.getAllTransactions);
 // Get all check-ins
 router.get('/checkins', adminController.getAllCheckIns);
 
+// Get member full history (checkins, transactions, wallet)
+router.get('/users/:id/history', adminController.getMemberFullHistory);
+
+// Get all wallets
+router.get('/wallets', adminController.getAllWallets);
+
+// Top up wallet
+router.post('/wallets/topup', adminController.topUpWallet);
+
+// Get member wallet history
+router.get('/wallets/:userId/history', adminController.getMemberWalletHistory);
+
 module.exports = router;

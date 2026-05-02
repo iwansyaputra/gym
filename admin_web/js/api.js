@@ -123,6 +123,10 @@ class ApiClient {
         return this.delete(`/admin/users/${userId}`);
     }
 
+    async getMemberFullHistory(userId) {
+        return this.get(`/admin/users/${userId}/history`);
+    }
+
     async linkNfcCard(userId, nfcId) {
         // Simpan nfc_id kartu fisik ke member di database
         return this.put(`/admin/users/${userId}`, { nfc_id: nfcId });
@@ -213,6 +217,19 @@ class ApiClient {
 
     async getPromo(promoId) {
         return this.get(`${API_CONFIG.ENDPOINTS.GET_PROMO}/${promoId}`);
+    }
+
+    // Wallet endpoints
+    async getAllWallets() {
+        return this.get(API_CONFIG.ENDPOINTS.GET_ALL_WALLETS);
+    }
+
+    async topUpWallet(data) {
+        return this.post(API_CONFIG.ENDPOINTS.TOPUP_WALLET, data);
+    }
+
+    async getMemberWalletHistory(userId) {
+        return this.get(`${API_CONFIG.ENDPOINTS.WALLET_HISTORY}/${userId}/history`);
     }
 
     // Dashboard stats (you might need to create these endpoints)

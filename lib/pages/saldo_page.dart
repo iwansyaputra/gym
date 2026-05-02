@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import 'membership_packages_page.dart';
@@ -298,9 +299,13 @@ class _SaldoPageState extends State<SaldoPage>
     return TextField(
       controller: _customController,
       keyboardType: TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        _CurrencyInputFormatter(),
+      ],
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
-        hintText: 'Nominal lain (min. Rp 10.000)',
+        hintText: 'Nominal lain (min. Rp 50.000)',
         hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
         prefixText: 'Rp  ',
         prefixStyle: const TextStyle(color: Colors.white70, fontSize: 14),
@@ -359,8 +364,13 @@ class _SaldoPageState extends State<SaldoPage>
       nominal = _selectedPreset;
     }
 
-    if (nominal == null || nominal < 10000) {
-      _showSnack('Pilih nominal atau masukkan minimal Rp 10.000', isError: true);
+    if (nominal == null || nominal < 50000) {
+      _showSnack('Pilih nominal atau masukkan minimal Rp 50.000', isError: true);
+      return;
+    }
+    
+    if (nominal > 1000000) {
+      _showSnack('Maksimal nominal top up adalah Rp 1.000.000', isError: true);
       return;
     }
 
@@ -650,6 +660,27 @@ class _SaldoPageState extends State<SaldoPage>
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+    String digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+    double value = double.parse(digits);
+    final formatter = NumberFormat.currency(locale: 'id_ID', symbol: '', decimalDigits: 0);
+    String newText = formatter.format(value);
+    return newValue.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
     );
   }
 }

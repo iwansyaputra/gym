@@ -74,7 +74,7 @@ const createPayment = async (req, res) => {
     let transactionStarted = false;
 
     try {
-        const { paket, harga } = req.body;
+        const { paket, harga, promo_id } = req.body;
         const userId = req.user.userId;
 
         if (!paket || !harga) {
@@ -102,14 +102,46 @@ const createPayment = async (req, res) => {
             });
         }
 
-        if (clientHarga !== selectedPackage.price) {
+        // ── Validasi harga dengan mempertimbangkan promo ──────────────────────
+        let expectedHarga = selectedPackage.price;
+        let appliedPromoId = null;
+        let appliedDiskon = 0;
+
+        if (promo_id) {
+            // Ambil promo dari DB dan pastikan masih aktif & valid
+            const [promoRows] = await connection.query(
+                `SELECT id, judul, diskon_persen FROM promos
+                 WHERE id = ? AND is_active = TRUE
+                   AND tanggal_mulai <= CURDATE() AND tanggal_berakhir >= CURDATE()
+                 LIMIT 1`,
+                [promo_id]
+            );
+
+            if (promoRows.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Promo tidak valid atau sudah kedaluwarsa'
+                });
+            }
+
+            const promo = promoRows[0];
+            appliedDiskon = Number(promo.diskon_persen) || 0;
+            appliedPromoId = promo.id;
+
+            // Hitung harga setelah diskon (integer, sama persis dengan Flutter: ~/ 100)
+            expectedHarga = Math.floor(selectedPackage.price * (100 - appliedDiskon) / 100);
+        }
+
+        if (clientHarga !== expectedHarga) {
             return res.status(400).json({
                 success: false,
-                message: `Harga paket ${normalizedPaket} tidak sesuai`
+                message: appliedPromoId
+                    ? `Harga paket ${normalizedPaket} setelah promo tidak sesuai. Expected: ${expectedHarga}`
+                    : `Harga paket ${normalizedPaket} tidak sesuai. Expected: ${expectedHarga}`
             });
         }
 
-        const numericHarga = selectedPackage.price;
+        const numericHarga = expectedHarga; // Gunakan harga yang sudah divalidasi
 
         const [users] = await connection.query('SELECT * FROM users WHERE id = ?', [userId]);
         if (users.length === 0) {
@@ -161,10 +193,17 @@ const createPayment = async (req, res) => {
             process.env.FRONTEND_URL ||
             `http://localhost:${process.env.PORT || 3000}`;
 
+        const itemName = appliedDiskon > 0
+            ? `Membership ${normalizedPaket} (Diskon ${appliedDiskon}%)`
+            : `Membership ${normalizedPaket}`;
+        const description = appliedDiskon > 0
+            ? `Pembayaran membership ${normalizedPaket} - Diskon ${appliedDiskon}%`
+            : `Pembayaran membership ${normalizedPaket}`;
+
         const requestBody = {
             order_id: orderId,
             amount: numericHarga,
-            description: `Pembayaran membership ${normalizedPaket}`,
+            description,
             customer: {
                 name: user.nama,
                 email: user.email,
@@ -172,7 +211,7 @@ const createPayment = async (req, res) => {
             },
             item: [
                 {
-                    name: `Membership ${normalizedPaket}`,
+                    name: itemName,
                     amount: numericHarga,
                     qty: 1
                 }
@@ -213,15 +252,20 @@ const createPayment = async (req, res) => {
         console.log(`  order_id       : ${orderId}`);
         console.log(`  transaction_id : ${gatewayTransactionId || '-'}`);
         console.log(`  payment_url    : ${paymentUrl}`);
+        if (appliedPromoId) {
+            console.log(`  promo_id       : ${appliedPromoId} (diskon ${appliedDiskon}%)`);
+        }
 
         res.json({
             success: true,
-                message: 'Link pembayaran berhasil dibuat',
+            message: 'Link pembayaran berhasil dibuat',
             data: {
                 order_id: orderId,
                 transaction_id: gatewayTransactionId,
                 payment_url: paymentUrl,
-                membership_id: membershipId
+                membership_id: membershipId,
+                diskon_applied: appliedDiskon,
+                promo_id: appliedPromoId
             }
         });
     } catch (error) {

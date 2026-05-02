@@ -7,8 +7,14 @@ import '../services/payment_service.dart';
 class PaymentPage extends StatefulWidget {
   final String paket;
   final int harga;
+  final int? promoId; // ID promo aktif (opsional) untuk validasi harga di backend
 
-  const PaymentPage({super.key, required this.paket, required this.harga});
+  const PaymentPage({
+    super.key,
+    required this.paket,
+    required this.harga,
+    this.promoId,
+  });
 
   @override
   State<PaymentPage> createState() => _PaymentPageState();
@@ -33,6 +39,7 @@ class _PaymentPageState extends State<PaymentPage> {
       final result = await PaymentService.createPayment(
         paket: widget.paket,
         harga: widget.harga,
+        promoId: widget.promoId, // teruskan promo_id ke service
       );
 
       if (result['success']) {

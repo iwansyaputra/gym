@@ -178,6 +178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateScannerStatus('error', `${currentMember.name} — Membership tidak aktif`);
                 showToast(`${currentMember.name}: Membership sudah expired`, 'error');
                 displayMemberInfo(currentMember, false);
+                showExpiredModal(currentMember);
                 return;
             }
 
@@ -363,6 +364,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         const inp = document.getElementById('manualNfcId');
         if (inp) inp.value = '';
     }
+
+    function closeSuccessModal() {
+        const modal = document.getElementById('successModal');
+        if (modal) modal.style.display = 'none';
+        updateScannerStatus('waiting', 'Siap scan NFC berikutnya');
+    }
+
+    // ─── EXPIRED MODAL ───────────────────────────────────────────────────────
+    function showExpiredModal(member) {
+        const modal = document.getElementById('expiredModal');
+        const msg = document.getElementById('expiredMessage');
+        if (!modal || !msg) return;
+
+        msg.innerHTML = `<strong style="color:white;">${member.name}</strong> belum memiliki paket aktif atau masa aktif sudah habis.<br><br>Silakan arahkan member untuk membeli atau memperpanjang paket.`;
+        modal.style.display = 'flex';
+    }
+
+    document.getElementById('closeExpiredModal')?.addEventListener('click', () => {
+        document.getElementById('expiredModal').style.display = 'none';
+        updateScannerStatus('waiting', 'Siap scan NFC berikutnya');
+    });
+
+    document.getElementById('redirectPackagesBtn')?.addEventListener('click', () => {
+        window.location.href = 'members.html'; // Lebih baik arahkan ke tabel member agar admin bisa atur paket member tsb
+    });
 
     // ─── Show success modal ───────────────────────────────────────────────────
     function showSuccessModal() {

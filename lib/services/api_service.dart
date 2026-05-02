@@ -944,7 +944,6 @@ class ApiService {
             headers: ApiConfig.headersWithAuth(token),
           )
           .timeout(const Duration(seconds: 10));
-
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['success'] == true) {
         return {'success': true, 'data': data['data'] ?? []};
@@ -956,20 +955,27 @@ class ApiService {
   }
 
   /// Perpanjang membership menggunakan saldo wallet
-  /// Input: packageId — ID paket yang dipilih
+  /// Input: packageId — ID paket yang dipilih, promoId — ID promo aktif (opsional)
   /// Output: data membership baru + info saldo terpotong
   static Future<Map<String, dynamic>> extendWithWallet({
     required int packageId,
+    int? promoId,
   }) async {
     try {
       final token = await AuthStorage.getToken();
       if (token == null) return {'success': false, 'message': 'Token tidak ditemukan'};
 
+      // Susun body — sertakan promo_id hanya jika ada promo aktif
+      final Map<String, dynamic> body = {'package_id': packageId};
+      if (promoId != null) {
+        body['promo_id'] = promoId;
+      }
+
       final response = await http
           .post(
             Uri.parse('${ApiConfig.baseUrl}${ApiConfig.walletExtend}'),
             headers: ApiConfig.headersWithAuth(token),
-            body: jsonEncode({'package_id': packageId}),
+            body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 30));
 

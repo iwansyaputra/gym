@@ -5,9 +5,12 @@ import 'auth_storage.dart';
 
 class PaymentService {
   // Create payment transaction via backend (E-Smartlink)
+  // [promoId] adalah ID promo aktif (opsional). Jika ada, dikirim ke backend
+  // sehingga backend bisa memvalidasi harga setelah diskon dengan benar.
   static Future<Map<String, dynamic>> createPayment({
     required String paket,
     required int harga,
+    int? promoId,
   }) async {
     try {
       final token = await AuthStorage.getToken();
@@ -16,13 +19,22 @@ class PaymentService {
         throw Exception('Token tidak ditemukan. Silakan login kembali.');
       }
 
+      // Susun body — sertakan promo_id hanya jika ada promo aktif
+      final Map<String, dynamic> body = {
+        'paket': paket,
+        'harga': harga,
+      };
+      if (promoId != null) {
+        body['promo_id'] = promoId;
+      }
+
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/payment/create'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({'paket': paket, 'harga': harga}),
+        body: jsonEncode(body),
       );
 
       final data = jsonDecode(response.body);

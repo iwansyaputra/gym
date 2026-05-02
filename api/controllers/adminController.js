@@ -507,6 +507,115 @@ const getAllCheckIns = async (req, res) => {
     }
 };
 
+// Get all wallets for admin
+const getAllWallets = async (req, res) => {
+    try {
+        const query = `
+            SELECT u.id as user_id, COALESCE(w.saldo, 0) as saldo, u.nama as user_name, u.email, m.paket as package_name, m.tanggal_berakhir as membership_expiry, m.status as membership_status
+            FROM users u
+            LEFT JOIN wallets w ON u.id = w.user_id
+            LEFT JOIN (
+                SELECT user_id, paket, tanggal_berakhir, status
+                FROM memberships
+                WHERE id IN (SELECT MAX(id) FROM memberships GROUP BY user_id)
+            ) m ON u.id = m.user_id
+            WHERE u.role = 'user'
+            ORDER BY u.nama ASC
+        `;
+        const [wallets] = await pool.query(query);
+        res.json({ success: true, data: wallets });
+    } catch (error) {
+        console.error('getAllWallets error:', error);
+        res.status(500).json({ success: false, message: 'Gagal mengambil data wallet' });
+    }
+};
+
+// Top up wallet by admin
+const topUpWallet = async (req, res) => {
+    try {
+        const { user_id, jumlah, keterangan } = req.body;
+        if (!user_id || !jumlah || jumlah <= 0) {
+            return res.status(400).json({ success: false, message: 'Data tidak valid' });
+        }
+
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // Insert if not exists
+            await connection.query('INSERT INTO wallets (user_id, saldo) VALUES (?, 0) ON DUPLICATE KEY UPDATE user_id = user_id', [user_id]);
+
+            // Lock row
+            const [[wallet]] = await connection.query('SELECT saldo FROM wallets WHERE user_id = ? FOR UPDATE', [user_id]);
+            const saldoAwal = parseFloat(wallet.saldo) || 0;
+            const saldoAkhir = saldoAwal + parseFloat(jumlah);
+
+            // Update balance
+            await connection.query('UPDATE wallets SET saldo = ? WHERE user_id = ?', [saldoAkhir, user_id]);
+
+            // Insert transaction
+            await connection.query(
+                `INSERT INTO wallet_transactions (user_id, jenis, jumlah, saldo_awal, saldo_akhir, keterangan) VALUES (?, 'topup', ?, ?, ?, ?)`,
+                [user_id, jumlah, saldoAwal, saldoAkhir, keterangan || 'Top up admin']
+            );
+
+            await connection.commit();
+            res.json({ success: true, message: 'Top up berhasil', data: { user_id, saldo_akhir: saldoAkhir } });
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        console.error('topUpWallet error:', error);
+        res.status(500).json({ success: false, message: 'Top up gagal: ' + error.message });
+    }
+};
+
+// Get member wallet history
+const getMemberWalletHistory = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const [history] = await pool.query('SELECT * FROM wallet_transactions WHERE user_id = ? ORDER BY created_at DESC', [userId]);
+        res.json({ success: true, data: history });
+    } catch (error) {
+        console.error('getMemberWalletHistory error:', error);
+        res.status(500).json({ success: false, message: 'Gagal mengambil riwayat wallet' });
+    }
+};
+
+// Get full history of a member (check-ins, transactions, wallet)
+const getMemberFullHistory = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Check-ins
+        const [checkins] = await pool.query('SELECT * FROM check_ins WHERE user_id = ? ORDER BY check_in_time DESC', [id]);
+
+        // Transactions
+        const [transactions] = await pool.query('SELECT * FROM transactions WHERE user_id = ? ORDER BY tanggal_transaksi DESC', [id]);
+
+        // Wallet History
+        const [wallet] = await pool.query('SELECT * FROM wallet_transactions WHERE user_id = ? ORDER BY created_at DESC', [id]);
+
+        res.json({
+            success: true,
+            data: {
+                checkins,
+                transactions,
+                wallet_history: wallet
+            }
+        });
+    } catch (error) {
+        console.error('Error getting member full history:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Gagal mengambil riwayat member: ' + error.message
+        });
+    }
+};
+
 module.exports = {
     getAllUsers,
     deleteUser,
@@ -515,5 +624,9 @@ module.exports = {
     updateUserByAdmin,
     getAllTransactions,
     getAllCheckIns,
-    getRevenueStatistics
+    getRevenueStatistics,
+    getAllWallets,
+    topUpWallet,
+    getMemberWalletHistory,
+    getMemberFullHistory
 };

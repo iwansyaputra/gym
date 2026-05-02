@@ -80,6 +80,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td>${status.status === 'pending' ? '-' : formatDate(member.membership_expiry)}</td>
                     <td>
                         <div class="action-buttons">
+                            <button class="btn-icon btn-history" onclick="viewMemberHistory(${member.id}, '${member.name}')" title="Riwayat">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M11.99 2C6.47 2 2 6.48 2 12S6.47 22 11.99 22C17.52 22 22 17.52 22 12S17.52 2 11.99 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM12.5 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7Z" fill="currentColor"/>
+                                </svg>
+                            </button>
                             <button class="btn-icon btn-edit" onclick="editMember(${member.id})" title="Edit">
                                 <svg viewBox="0 0 24 24" fill="none">
                                     <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="currentColor"/>
@@ -654,6 +659,101 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (closeDeleteModal) closeDeleteModal.addEventListener('click', () => modal.classList.remove('active'));
         if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', () => modal.classList.remove('active'));
+    };
+
+    // View member history
+    window.viewMemberHistory = async function (memberId, memberName) {
+        const modal = document.getElementById('historyModal');
+        if (!modal) return;
+        
+        document.getElementById('historyMemberName').textContent = memberName;
+        
+        // Show loading state in all tables
+        document.getElementById('historyCheckinTable').innerHTML = '<tr><td colspan="3" class="text-center">Memuat...</td></tr>';
+        document.getElementById('historyTransactionTable').innerHTML = '<tr><td colspan="5" class="text-center">Memuat...</td></tr>';
+        document.getElementById('historyWalletTable').innerHTML = '<tr><td colspan="4" class="text-center">Memuat...</td></tr>';
+        
+        modal.classList.add('active');
+
+        try {
+            const response = await api.getMemberFullHistory(memberId);
+            if (response.success && response.data) {
+                const { checkins, transactions, wallet_history } = response.data;
+                
+                // Render Checkins
+                const tbodyCheckin = document.getElementById('historyCheckinTable');
+                if (checkins.length === 0) {
+                    tbodyCheckin.innerHTML = '<tr><td colspan="3" class="text-center">Tidak ada riwayat check-in</td></tr>';
+                } else {
+                    tbodyCheckin.innerHTML = checkins.map(c => `
+                        <tr>
+                            <td>${formatDateTime(c.check_in_time)}</td>
+                            <td>${c.check_in_method || 'NFC'}</td>
+                            <td>${c.location || '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Render Transactions
+                const tbodyTrans = document.getElementById('historyTransactionTable');
+                if (transactions.length === 0) {
+                    tbodyTrans.innerHTML = '<tr><td colspan="5" class="text-center">Tidak ada riwayat transaksi</td></tr>';
+                } else {
+                    tbodyTrans.innerHTML = transactions.map(t => `
+                        <tr>
+                            <td>${t.order_id || '-'}</td>
+                            <td>${formatDateTime(t.tanggal_transaksi)}</td>
+                            <td>${t.jenis_transaksi || 'membership'}</td>
+                            <td>${formatCurrency(t.jumlah)}</td>
+                            <td><span class="badge ${t.status === 'success' ? 'badge-active' : (t.status === 'failed' ? 'badge-expired' : 'badge-pending')}">${t.status}</span></td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Render Wallet
+                const tbodyWallet = document.getElementById('historyWalletTable');
+                if (wallet_history.length === 0) {
+                    tbodyWallet.innerHTML = '<tr><td colspan="4" class="text-center">Tidak ada riwayat saldo</td></tr>';
+                } else {
+                    tbodyWallet.innerHTML = wallet_history.map(w => `
+                        <tr>
+                            <td>${formatDateTime(w.created_at)}</td>
+                            <td>${w.jenis === 'topup' ? '<span style="color:var(--success)">+ Top Up</span>' : '<span style="color:var(--danger)">- Pembayaran</span>'}</td>
+                            <td>${formatCurrency(w.jumlah)}</td>
+                            <td>${w.keterangan || '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+            } else {
+                showToast('Gagal memuat riwayat', 'error');
+                modal.classList.remove('active');
+            }
+        } catch (error) {
+            console.error('Error fetching history:', error);
+            showToast('Terjadi kesalahan saat memuat riwayat', 'error');
+            modal.classList.remove('active');
+        }
+    };
+
+    // Close History Modal
+    const closeHistoryModal = document.getElementById('closeHistoryModal');
+    if (closeHistoryModal) closeHistoryModal.addEventListener('click', () => document.getElementById('historyModal').classList.remove('active'));
+
+    // Switch Tabs inside History Modal
+    window.switchHistoryTab = function(tabName) {
+        document.querySelectorAll('.history-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+            btn.style.color = 'var(--text-2)';
+            btn.style.borderBottom = 'none';
+        });
+        document.querySelectorAll('.history-tab-content').forEach(content => content.style.display = 'none');
+        
+        const activeBtn = document.getElementById('tab-btn-' + tabName);
+        activeBtn.classList.add('active');
+        activeBtn.style.color = 'var(--text-1)';
+        activeBtn.style.borderBottom = '2px solid var(--primary)';
+        
+        document.getElementById('tab-content-' + tabName).style.display = 'block';
     };
 
     // Export to CSV

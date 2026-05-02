@@ -65,7 +65,7 @@ const extendWithWallet = async (req, res) => {
 
     try {
         const userId = req.user.userId;
-        const { package_id: packageId } = req.body;
+        const { package_id: packageId, promo_id } = req.body;
 
         if (!packageId) {
             return res.status(400).json({
@@ -102,19 +102,54 @@ const extendWithWallet = async (req, res) => {
             });
         }
 
-        const harga = Number(selectedPackage.harga);
+        const hargaAsli = Number(selectedPackage.harga);
         const durasi = Number(selectedPackage.durasi);
 
-        // Cek saldo
+        // ── Validasi promo & hitung harga akhir ──────────────────────────────
+        let harga = hargaAsli;
+        let appliedDiskon = 0;
+        let appliedPromoId = null;
+
+        if (promo_id) {
+            const [promoRows] = await connection.query(
+                `SELECT id, judul, diskon_persen FROM promos
+                 WHERE id = ? AND is_active = TRUE
+                   AND tanggal_mulai <= CURDATE() AND tanggal_berakhir >= CURDATE()
+                 LIMIT 1`,
+                [promo_id]
+            );
+
+            if (promoRows.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Promo tidak valid atau sudah kedaluwarsa'
+                });
+            }
+
+            const promo = promoRows[0];
+            appliedDiskon = Number(promo.diskon_persen) || 0;
+            appliedPromoId = promo.id;
+            // Gunakan Math.floor agar konsisten dengan Flutter (~/ 100)
+            harga = Math.floor(hargaAsli * (100 - appliedDiskon) / 100);
+
+            console.log(`[extendWithWallet] promo_id=${appliedPromoId} diskon=${appliedDiskon}% harga_asli=${hargaAsli} harga_final=${harga}`);
+        }
+
+        // Cek saldo — lock row untuk mencegah race condition
+        await connection.query(
+            'INSERT INTO wallets (user_id, saldo) VALUES (?, 0) ON DUPLICATE KEY UPDATE user_id = user_id',
+            [userId]
+        );
         const [[wallet]] = await connection.query(
             'SELECT saldo FROM wallets WHERE user_id = ? FOR UPDATE',
             [userId]
         );
 
         if (!wallet || parseFloat(wallet.saldo) < harga) {
+            const saldoAda = parseFloat(wallet?.saldo || 0);
             return res.status(400).json({
                 success: false,
-                message: `Saldo tidak cukup. Saldo: Rp ${parseFloat(wallet?.saldo || 0).toLocaleString('id-ID')}, Harga: Rp ${harga.toLocaleString('id-ID')}`
+                message: `Saldo tidak cukup. Saldo: Rp ${saldoAda.toLocaleString('id-ID')}, Harga: Rp ${harga.toLocaleString('id-ID')}`
             });
         }
 
@@ -139,7 +174,7 @@ const extendWithWallet = async (req, res) => {
         await connection.beginTransaction();
         transactionStarted = true;
 
-        // Buat membership baru
+        // Buat membership baru dengan status 'active' langsung
         const [membershipResult] = await connection.query(
             `INSERT INTO memberships (user_id, paket, tanggal_mulai, tanggal_berakhir, status)
              VALUES (?, ?, ?, ?, 'active')`,
@@ -153,30 +188,36 @@ const extendWithWallet = async (req, res) => {
             [userId]
         );
 
-        // Catat transaksi
+        // Catat transaksi — simpan jumlah SETELAH diskon
         const orderId = `WALLET-${Date.now()}-${userId}`;
+        const keteranganTx = appliedDiskon > 0
+            ? `Membership ${selectedPackage.nama} (Diskon ${appliedDiskon}%) via saldo`
+            : `Membership ${selectedPackage.nama} via saldo`;
+
         await connection.query(
             `INSERT INTO transactions (user_id, membership_id, jenis_transaksi, jumlah, metode_pembayaran, status, order_id)
              VALUES (?, ?, 'membership', ?, 'wallet', 'success', ?)`,
             [userId, membershipId, harga, orderId]
         );
 
-        // Kurangi saldo
+        // Kurangi saldo wallet
         await connection.query(
             'UPDATE wallets SET saldo = ? WHERE user_id = ?',
             [saldoAkhir, userId]
         );
 
-        // Catat wallet transaction
+        // Catat wallet_transaction
         await connection.query(
             `INSERT INTO wallet_transactions (user_id, jenis, jumlah, saldo_awal, saldo_akhir, keterangan)
              VALUES (?, 'debit', ?, ?, ?, ?)`,
             [userId, harga, saldoAwal, saldoAkhir,
-             `Perpanjang membership ${selectedPackage.nama || packageId} (${orderId})`]
+             `${keteranganTx} (${orderId})`]
         );
 
         await connection.commit();
         transactionStarted = false;
+
+        console.log(`[extendWithWallet] ✅ user=${userId} paket=${selectedPackage.nama} harga=${harga} saldo_akhir=${saldoAkhir}`);
 
         res.json({
             success: true,
@@ -185,6 +226,8 @@ const extendWithWallet = async (req, res) => {
                 membership_id: membershipId,
                 tanggal_mulai: tanggalMulai,
                 tanggal_berakhir: tanggalBerakhir,
+                harga_dibayar: harga,
+                diskon_applied: appliedDiskon,
                 saldo_sekarang: saldoAkhir,
                 order_id: orderId
             }

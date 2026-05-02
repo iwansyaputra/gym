@@ -16,6 +16,7 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
   bool _isLoading = true;
   int _activePromoDiskon = 0;   // % diskon dari promo aktif (0 = tidak ada promo)
   String _activePromoJudul = '';
+  int? _activePromoId;          // ID promo aktif untuk validasi di backend
   List<Map<String, dynamic>> _packages = const [
     {
       'slug': 'bulanan',
@@ -111,6 +112,9 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
       setState(() {
         _activePromoDiskon = (promoData['diskon_persen'] as num?)?.toInt() ?? 0;
         _activePromoJudul = promoData['judul']?.toString() ?? '';
+        // Simpan ID promo agar bisa diteruskan ke backend saat checkout
+        final rawId = promoData['id'];
+        _activePromoId = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
       });
     }
   }
@@ -399,8 +403,13 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
                       final finalPrice = _activePromoDiskon > 0
                           ? (price * (100 - _activePromoDiskon) ~/ 100)
                           : price;
-                      _handlePayment(context, slug, finalPrice,
-                          packageData: _packages.firstWhere((p) => p['slug'] == slug, orElse: () => {}));
+                      _handlePayment(
+                        context,
+                        slug,
+                        finalPrice,
+                        promoId: _activePromoId,
+                        packageData: _packages.firstWhere((p) => p['slug'] == slug, orElse: () => {}),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isPopular ? color : const Color(0xFF2A2A2A),
@@ -466,6 +475,7 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
     BuildContext context,
     String paket,
     int harga, {
+    int? promoId,
     Map<String, dynamic> packageData = const {},
   }) async {
     // Mode bayar via saldo
@@ -504,11 +514,24 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
       if (confirmed != true || !context.mounted) return;
 
       // Cari package_id dari data
-      final pkgId = packageData['id'] ?? packageData['sortValue'];
-      if (pkgId == null) {
+      // fallback ke mapping manual jika id dari API kosong / null
+      int? packageIdInt;
+      final rawId = packageData['id'];
+      if (rawId != null) {
+        packageIdInt = rawId is int ? rawId : int.tryParse(rawId.toString());
+      }
+      if (packageIdInt == null) {
+        // Fallback mapping slug to ID (sesuai package.json bawaan sistem)
+        if (paket == 'bulanan') packageIdInt = 1;
+        else if (paket == '3bulan') packageIdInt = 2;
+        else if (paket == '6bulan') packageIdInt = 3;
+        else if (paket == 'tahunan') packageIdInt = 4;
+      }
+
+      if (packageIdInt == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Gagal: ID paket tidak ditemukan'),
+            content: Text('Gagal: ID paket tidak valid'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -516,7 +539,11 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
         return;
       }
 
-      final result = await ApiService.extendWithWallet(packageId: int.parse(pkgId.toString()));
+      // Kirim id paket dan promo_id aktif ke backend
+      final result = await ApiService.extendWithWallet(
+        packageId: packageIdInt,
+        promoId: promoId, // TERUSKAN PROMO ID AGAR POTONG SALDO SESUAI DISKON
+      );
 
       if (!context.mounted) return;
 
@@ -577,7 +604,11 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PaymentPage(paket: paket, harga: harga),
+          builder: (context) => PaymentPage(
+            paket: paket,
+            harga: harga,
+            promoId: promoId, // teruskan promo_id agar backend bisa validasi
+          ),
         ),
       );
 

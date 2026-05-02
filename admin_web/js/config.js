@@ -32,6 +32,7 @@ const API_CONFIG = {
         CREATE_USER: '/auth/register',
         UPDATE_USER: '/admin/users',
         DELETE_USER: '/admin/users',
+        MEMBER_FULL_HISTORY: '/admin/users',
 
         // Admin - Dashboard
         DASHBOARD_STATS: '/admin/dashboard/stats',
@@ -59,7 +60,12 @@ const API_CONFIG = {
 
         // Promos
         GET_PROMOS: '/promos',
-        GET_PROMO: '/promos'
+        GET_PROMO: '/promos',
+
+        // Wallet / Topup
+        GET_ALL_WALLETS: '/admin/wallets',
+        TOPUP_WALLET: '/admin/wallets/topup',
+        WALLET_HISTORY: '/admin/wallets'
     },
 
     // Request timeout in milliseconds

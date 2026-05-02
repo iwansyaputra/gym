@@ -5,10 +5,11 @@ Sistem manajemen gym lengkap berbasis **Flutter (mobile)**, **Admin Web (HTML/JS
 ---
 
 ## ✨ Fitur Terbaru (Mei 2026)
-1. **Programming Kartu Fisik NFC**: Mendukung penulisan/pendaftaran ID Member secara langsung ke memori internal kartu fisik (NTAG213 / Mifare Classic 1K) melalui *raw byte APDU*. Penulisan instan dan anti-gagal dengan *automatic authentication* (mengatasi error `SW=6300`).
-2. **NFC Utility Tool di Admin Web**: Tersedia fitur "Baca Kartu" (melihat informasi ID yang ada pada kartu fisik) dan "Format Kartu" (menghapus data dari kartu agar bisa digunakan ulang).
-3. **Proteksi Check-In Berbasis Langganan**: Pada Mobile App, fitur *Check-in NFC* otomatis terblokir jika user berstatus **Non-Member** atau masa berlangganannya telah **kadaluwarsa**. Terdapat *popup redirect* instan menuju halaman pembelian paket.
-4. **Dynamic Membership Dashboard**: Perbaikan logika status UI Flutter (peringatan "Masa aktif hampir habis" tidak lagi muncul di akun non-member). Tombol *call-to-action* otomatis berganti antara "Daftar Membership" dan "Perpanjang Membership".
+1. **Programming Kartu Fisik NFC**: Mendukung penulisan/pendaftaran ID Member secara langsung ke memori internal kartu fisik (NTAG213 / Mifare Classic 1K) melalui *raw byte APDU*.
+2. **Sistem Dompet (Wallet) Terintegrasi**: Fitur "Kelola Saldo" telah tersinkronisasi penuh antara Admin Web dan Backend. Admin dapat melakukan Top Up saldo, memantau riwayat transaksi, dan sistem akan meng-update otomatis saat member menggunakan saldo untuk perpanjangan.
+3. **Sentralisasi UI Admin**: Struktur menu Sidebar pada Web Admin telah difaktorisasi ke dalam satu komponen pusat (`js/components.js`). Tidak ada lagi UI berantakan (*shifting*), lebih rapi, dan mudah dikelola tanpa harus mengedit banyak file HTML.
+4. **Proteksi Check-In Berbasis Langganan**: Pada Mobile App, fitur *Check-in NFC* otomatis terblokir jika user berstatus **Non-Member** atau kadaluwarsa.
+5. **Dynamic Membership Dashboard**: Perbaikan logika status UI Flutter dengan tombol cerdas ("Daftar" vs "Perpanjang").
 
 ---
 
@@ -154,6 +155,7 @@ Jika `nfc-bridge.py` tidak aktif, otomatis fallback ke Web NFC API (hanya Chrome
 | `dashboard.html` | Statistik harian — member, check-in, revenue |
 | `members.html` | Manajemen member (CRUD) |
 | `checkin.html` | Check-in NFC real-time via ACR122U |
+| `topup.html` | Manajemen dan top up saldo dompet member |
 | `packages.html` | Manajemen paket membership |
 | `transactions.html` | Riwayat transaksi |
 | `reports.html` | Laporan + K-Means clustering aktivitas member |
@@ -167,7 +169,6 @@ membership_gym/
 ├── api/                          # Backend Node.js
 │   ├── server.js                 # Entry point Express
 │   ├── nfc-bridge.py             # NFC Bridge (ACR122U → WebSocket)
-│   ├── nfc-bridge.js             # NFC Bridge versi Node.js (backup)
 │   ├── jalankan-nfc-bridge.bat   # Script Windows untuk jalankan bridge
 │   ├── controllers/
 │   │   ├── authController.js
@@ -177,6 +178,7 @@ membership_gym/
 │   │   ├── transactionController.js
 │   │   ├── promoController.js
 │   │   ├── paymentController.js
+│   │   ├── walletController.js
 │   │   └── adminController.js
 │   ├── routes/
 │   ├── middleware/
@@ -194,9 +196,11 @@ membership_gym/
 │   ├── packages.html
 │   ├── transactions.html
 │   ├── reports.html
+│   ├── topup.html                # Kelola Saldo Member
 │   ├── jalankan-admin-web.bat    # Script jalankan HTTP server lokal
 │   ├── css/style.css
 │   └── js/
+│       ├── components.js         # UI Components terpusat (Sidebar)
 │       ├── config.js             # API URL config (update IP di sini)
 │       ├── auth.js
 │       ├── api.js
@@ -206,6 +210,7 @@ membership_gym/
 │       ├── members.js
 │       ├── packages.js
 │       ├── transactions.js
+│       ├── topup.js              # Logika topup & riwayat saldo
 │       └── reports.js
 │
 ├── lib/                          # Flutter Mobile App
@@ -259,6 +264,9 @@ membership_gym/
 | GET | `/api/admin/users` | Semua member |
 | GET | `/api/admin/dashboard/stats` | Statistik dashboard |
 | GET | `/api/admin/checkin/stats` | Statistik check-in |
+| GET | `/api/admin/wallets` | Data dompet member |
+| POST | `/api/admin/wallets/topup` | Top up saldo member |
+| GET | `/api/admin/wallets/:id/history` | Riwayat saldo member |
 
 ### Membership & Transaksi
 | Method | Endpoint | Keterangan |
@@ -280,6 +288,8 @@ check_ins       -- Log check-in (user_id, check_in_time, check_in_method)
 transactions    -- Riwayat transaksi pembayaran
 packages        -- Paket membership tersedia
 promos          -- Data promosi/diskon
+wallets         -- Data dompet digital/saldo member
+wallet_transactions -- Riwayat topup & potong saldo
 ```
 
 > **Kolom penting:** `member_cards.nfc_id` — ID unik yang disimpan di Flutter (via HCE) dan dibaca oleh ACR122U bridge.
