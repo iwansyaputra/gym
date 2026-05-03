@@ -5,9 +5,9 @@
     <uses-feature android:name="android.hardware.nfc.hce" android:required="false" />
     
     <application
-        android:label="membership_gym"
+        android:label="GYMKU"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/launcher_icon"
         android:usesCleartextTraffic="true">
 
         <activity

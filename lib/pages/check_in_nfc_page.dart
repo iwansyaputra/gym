@@ -181,6 +181,9 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
   @override
   void dispose() {
     _controller.dispose();
+    if (apduAdded) {
+      NfcHce.removeApduResponse(port);
+    }
     super.dispose();
   }
 

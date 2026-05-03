@@ -233,7 +233,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
                 decoration: _inputDecoration("Jenis Kelamin"),
                 dropdownColor: const Color(0xFF1A1A1A),
                 style: const TextStyle(color: Colors.white),
-                value: _gender,
+                initialValue: _gender,
                 items: const [
                   DropdownMenuItem(
                     value: "Laki-laki",

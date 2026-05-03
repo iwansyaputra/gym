@@ -70,7 +70,7 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
 
       for (final item in rawList) {
         if (item is! Map) continue;
-        final data = Map<String, dynamic>.from(item as Map);
+        final data = Map<String, dynamic>.from(item);
         final slug = (data['slug'] ?? '').toString();
         final title = (data['nama'] ?? '').toString().replaceAll('Paket ', '');
         final featuresList = _toStringList(data['fitur']);
@@ -174,7 +174,7 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
                       child: ListView.separated(
                         physics: const BouncingScrollPhysics(),
                         itemCount: _packages.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 24),
+                        separatorBuilder: (_, _) => const SizedBox(height: 24),
                         itemBuilder: (context, index) {
                           final item = _packages[index];
                           return _buildPackageCard(
@@ -522,8 +522,9 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
       }
       if (packageIdInt == null) {
         // Fallback mapping slug to ID (sesuai package.json bawaan sistem)
-        if (paket == 'bulanan') packageIdInt = 1;
-        else if (paket == '3bulan') packageIdInt = 2;
+        if (paket == 'bulanan') {
+          packageIdInt = 1;
+        } else if (paket == '3bulan') packageIdInt = 2;
         else if (paket == '6bulan') packageIdInt = 3;
         else if (paket == 'tahunan') packageIdInt = 4;
       }

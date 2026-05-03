@@ -551,7 +551,7 @@ class _SaldoPageState extends State<SaldoPage>
       child: ListView.separated(
         padding: const EdgeInsets.all(20),
         itemCount: _historyData.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, i) => _buildHistoryItem(_historyData[i]),
       ),
     );

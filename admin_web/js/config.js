@@ -3,7 +3,7 @@ const API_CONFIG = {
     // Otomatis deteksi IP/Host agar tidak perlu ganti-ganti saat pindah WiFi
     // Jika admin web dibuka dari file:// di browser, gunakan fallback ke IP server.
     BASE_URL: (() => {
-        const FALLBACK_API_HOST = 'localhost'; // ✅ IP Server (update jika ganti WiFi)
+        const FALLBACK_API_HOST = '192.168.100.98'; // ✅ IP Server (update jika ganti WiFi)
         const hostname = window.location.hostname;
         // Jika dibuka lewat file://, localhost, atau 127.0.0.1 → pakai IP server langsung
         // Jika dibuka dari IP/host lain (misal dihosting) → pakai hostname itu

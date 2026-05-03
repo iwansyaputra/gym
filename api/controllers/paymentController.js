@@ -200,6 +200,10 @@ const createPayment = async (req, res) => {
             ? `Pembayaran membership ${normalizedPaket} - Diskon ${appliedDiskon}%`
             : `Pembayaran membership ${normalizedPaket}`;
 
+        let customerPhone = user.hp ? String(user.hp).replace(/[^0-9+]/g, '') : '00000000';
+        if (customerPhone.length < 8) customerPhone = '00000000';
+        if (customerPhone.length > 18) customerPhone = customerPhone.substring(0, 18);
+
         const requestBody = {
             order_id: orderId,
             amount: numericHarga,
@@ -207,7 +211,7 @@ const createPayment = async (req, res) => {
             customer: {
                 name: user.nama,
                 email: user.email,
-                phone: user.hp || '-'
+                phone: customerPhone
             },
             item: [
                 {
@@ -425,6 +429,10 @@ const createTopUpPayment = async (req, res) => {
         );
         const transactionId = txResult.insertId;
 
+        let customerPhone = user.hp ? String(user.hp).replace(/[^0-9+]/g, '') : '00000000';
+        if (customerPhone.length < 8) customerPhone = '00000000';
+        if (customerPhone.length > 18) customerPhone = customerPhone.substring(0, 18);
+
         const requestBody = {
             order_id: orderId,
             amount: nominal,
@@ -432,7 +440,7 @@ const createTopUpPayment = async (req, res) => {
             customer: {
                 name: user.nama,
                 email: user.email,
-                phone: user.hp || '-'
+                phone: customerPhone
             },
             item: [
                 {

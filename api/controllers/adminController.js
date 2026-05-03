@@ -366,8 +366,8 @@ const updateUserByAdmin = async (req, res) => {
                         );
                     } else {
                         await pool.query(
-                            "INSERT INTO memberships (user_id, paket, tanggal_mulai, tanggal_berakhir, hargapaket, total_harga, status) VALUES (?, ?, ?, ?, ?, ?, 'active')", 
-                            [id, namaPaket, startDate, endDate, harga, harga]
+                            "INSERT INTO memberships (user_id, paket, tanggal_mulai, tanggal_berakhir, status) VALUES (?, ?, ?, ?, 'active')", 
+                            [id, namaPaket, startDate, endDate]
                         );
                     }
                     
