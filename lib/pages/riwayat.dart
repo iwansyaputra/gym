@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/payment_service.dart';
+import '../services/api_service.dart';
 
 class RiwayatPage extends StatefulWidget {
   const RiwayatPage({super.key});
@@ -9,18 +10,29 @@ class RiwayatPage extends StatefulWidget {
   State<RiwayatPage> createState() => _RiwayatPageState();
 }
 
-class _RiwayatPageState extends State<RiwayatPage> {
+class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStateMixin {
   List<dynamic> _transactions = [];
-  bool _isLoading = true;
+  List<dynamic> _checkIns = [];
+  bool _isLoadingTransactions = true;
+  bool _isLoadingCheckIns = true;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadTransactions();
+    _loadCheckIns();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTransactions() async {
-    setState(() => _isLoading = true);
+    setState(() => _isLoadingTransactions = true);
 
     final result = await PaymentService.getPaymentHistory();
 
@@ -29,7 +41,22 @@ class _RiwayatPageState extends State<RiwayatPage> {
         if (result['success'] == true) {
           _transactions = result['data'] as List;
         }
-        _isLoading = false;
+        _isLoadingTransactions = false;
+      });
+    }
+  }
+
+  Future<void> _loadCheckIns() async {
+    setState(() => _isLoadingCheckIns = true);
+
+    final result = await ApiService.getCheckInHistory();
+
+    if (mounted) {
+      setState(() {
+        if (result['success'] == true && result['data'] != null && result['data']['check_ins'] != null) {
+          _checkIns = result['data']['check_ins'] as List;
+        }
+        _isLoadingCheckIns = false;
       });
     }
   }
@@ -53,8 +80,14 @@ class _RiwayatPageState extends State<RiwayatPage> {
   String _formatDate(String? dateStr) {
     if (dateStr == null) return '';
     try {
-      final date = DateTime.parse(dateStr);
-      return DateFormat('dd MMMM yyyy', 'id_ID').format(date);
+      DateTime date = DateTime.parse(dateStr);
+      if (date.isUtc) {
+        date = date.add(const Duration(hours: 7));
+      } else {
+        // Anggap UTC jika tanpa Z
+        date = DateTime.utc(date.year, date.month, date.day, date.hour, date.minute, date.second).add(const Duration(hours: 7));
+      }
+      return DateFormat('dd MMMM yyyy').format(date);
     } catch (e) {
       return dateStr;
     }
@@ -69,7 +102,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
         backgroundColor: const Color(0xFF0A0A0A),
         centerTitle: true,
         title: const Text(
-          "Riwayat Transaksi",
+          "Riwayat",
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -78,52 +111,196 @@ class _RiwayatPageState extends State<RiwayatPage> {
           ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadTransactions,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: const Color(0xFF2196F3),
+          labelColor: const Color(0xFF2196F3),
+          unselectedLabelColor: Colors.grey,
+          tabs: const [
+            Tab(text: "Transaksi"),
+            Tab(text: "Check-in"),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildTransaksiTab(),
+          _buildCheckInTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransaksiTab() {
+    return _isLoadingTransactions
+        ? const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)))
+        : RefreshIndicator(
+            color: const Color(0xFF2196F3),
+            backgroundColor: const Color(0xFF1A1A1A),
+            onRefresh: _loadTransactions,
+            child: _transactions.isEmpty
+                ? _buildEmptyState('Belum ada riwayat transaksi', Icons.receipt_long)
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    itemCount: _transactions.length,
+                    itemBuilder: (context, index) {
+                      final raw = _transactions[index];
+                      if (raw is! Map) {
+                        return const SizedBox.shrink();
+                      }
+                      final transaction = Map<String, dynamic>.from(raw);
+                      return _buildRiwayatCard(transaction);
+                    },
+                  ),
+          );
+  }
+
+  Widget _buildCheckInTab() {
+    return _isLoadingCheckIns
+        ? const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)))
+        : RefreshIndicator(
+            color: const Color(0xFF2196F3),
+            backgroundColor: const Color(0xFF1A1A1A),
+            onRefresh: _loadCheckIns,
+            child: _checkIns.isEmpty
+                ? _buildEmptyState('Belum ada riwayat check-in', Icons.how_to_reg)
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    itemCount: _checkIns.length,
+                    itemBuilder: (context, index) {
+                      final raw = _checkIns[index];
+                      if (raw is! Map) {
+                        return const SizedBox.shrink();
+                      }
+                      final checkIn = Map<String, dynamic>.from(raw);
+                      return _buildCheckInCard(checkIn);
+                    },
+                  ),
+          );
+  }
+
+  Widget _buildEmptyState(String message, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 80, color: Colors.grey.withOpacity(0.3)),
+          const SizedBox(height: 16),
+          Text(message, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCheckInCard(Map<String, dynamic> checkIn) {
+    final String dateStr = checkIn['check_in_time']?.toString() ?? '';
+    String formattedDate = dateStr.isEmpty ? 'Tanggal tidak diketahui' : dateStr;
+    String formattedTime = '--:--';
+
+    if (dateStr.isNotEmpty) {
+      try {
+        // Paksa konversi ke WIB (UTC+7) mengabaikan zona waktu emulator
+        DateTime date = DateTime.parse(dateStr);
+        if (date.isUtc) {
+          date = date.add(const Duration(hours: 7));
+        } else {
+          date = DateTime.utc(date.year, date.month, date.day, date.hour, date.minute, date.second).add(const Duration(hours: 7));
+        }
+        
+        formattedDate = DateFormat('dd MMMM yyyy').format(date);
+        formattedTime = DateFormat('HH:mm').format(date);
+      } catch (e) {
+        // Fallback jika DateTime.parse tetap gagal
+        final parts = dateStr.split(RegExp(r'[T\s]'));
+        if (parts.length > 1) {
+          formattedDate = parts[0];
+          
+          final timePart = parts[1].replaceAll('Z', '');
+          final timeParts = timePart.split(':');
+          if (timeParts.length >= 2) {
+            formattedTime = '${timeParts[0]}:${timeParts[1]}';
+          } else {
+            formattedTime = timePart;
+          }
+        }
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)))
-          : RefreshIndicator(
-              color: const Color(0xFF2196F3),
-              backgroundColor: const Color(0xFF1A1A1A),
-              onRefresh: _loadTransactions,
-              child: _transactions.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.receipt_long,
-                            size: 80,
-                            color: Colors.grey.withOpacity(0.3),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Belum ada riwayat transaksi',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(20),
-                      itemCount: _transactions.length,
-                      itemBuilder: (context, index) {
-                        final raw = _transactions[index];
-                        if (raw is! Map) {
-                          return const SizedBox.shrink();
-                        }
-
-                        final transaction = Map<String, dynamic>.from(raw);
-                        return _buildRiwayatCard(transaction);
-                      },
-                    ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
+            child: const Icon(Icons.how_to_reg, color: Colors.green, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Check-in Berhasil',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  formattedDate,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formattedTime,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'WIB',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

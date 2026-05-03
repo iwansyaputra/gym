@@ -5,11 +5,14 @@ Sistem manajemen gym lengkap berbasis **Flutter (mobile)**, **Admin Web (HTML/JS
 ---
 
 ## ✨ Fitur Terbaru (Mei 2026)
-1. **Programming Kartu Fisik NFC**: Mendukung penulisan/pendaftaran ID Member secara langsung ke memori internal kartu fisik (NTAG213 / Mifare Classic 1K) melalui *raw byte APDU*.
-2. **Sistem Dompet (Wallet) Terintegrasi**: Fitur "Kelola Saldo" telah tersinkronisasi penuh antara Admin Web dan Backend. Admin dapat melakukan Top Up saldo, memantau riwayat transaksi, dan sistem akan meng-update otomatis saat member menggunakan saldo untuk perpanjangan.
-3. **Sentralisasi UI Admin**: Struktur menu Sidebar pada Web Admin telah difaktorisasi ke dalam satu komponen pusat (`js/components.js`). Tidak ada lagi UI berantakan (*shifting*), lebih rapi, dan mudah dikelola tanpa harus mengedit banyak file HTML.
-4. **Proteksi Check-In Berbasis Langganan**: Pada Mobile App, fitur *Check-in NFC* otomatis terblokir jika user berstatus **Non-Member** atau kadaluwarsa.
-5. **Dynamic Membership Dashboard**: Perbaikan logika status UI Flutter dengan tombol cerdas ("Daftar" vs "Perpanjang").
+1. **Rebranding Identitas Aplikasi (GYMKU)**: Pembaruan total pada nama aplikasi dan ikon launcher dengan desain estetik Dark Blue & Black yang kuat dan modern menggunakan `flutter_launcher_icons`.
+2. **Riwayat Check-in Member (Mobile)**: Penambahan Tab Baru pada halaman Riwayat di aplikasi Flutter. Member kini bisa melihat riwayat kehadiran (tanggal & jam) mereka secara personal yang dipisahkan dari riwayat transaksi.
+3. **Sinkronisasi Zona Waktu Real-time**: Peningkatan akurasi waktu check-in dengan sistem yang mampu menerjemahkan data UTC dari server Node.js ke Waktu Indonesia Barat (WIB) secara *real-time* di semua perangkat, tanpa terpengaruh bug zona waktu dari Android Emulator.
+4. **Pembersihan Kode Kusam**: Penghapusan skrip generator UI usang (`dark_css.py`, `clean_css.py`) dan optimalisasi codebase Flutter dengan `dart fix`.
+5. **Programming Kartu Fisik NFC**: Mendukung penulisan/pendaftaran ID Member secara langsung ke memori internal kartu fisik (NTAG213 / Mifare Classic 1K).
+6. **Sistem Dompet (Wallet) Terintegrasi**: Fitur "Kelola Saldo" tersinkronisasi penuh antara Admin Web dan Backend.
+7. **Sentralisasi UI Admin**: Struktur menu Sidebar pada Web Admin telah difaktorisasi ke dalam satu komponen pusat (`js/components.js`).
+8. **Proteksi Check-In Berbasis Langganan**: Pada Mobile App, fitur *Check-in NFC* otomatis terblokir jika user berstatus **Non-Member** atau kadaluwarsa.
 
 ---
 
