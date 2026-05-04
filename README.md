@@ -13,6 +13,7 @@ Sistem manajemen gym lengkap berbasis **Flutter (mobile)**, **Admin Web (HTML/JS
 6. **Sistem Dompet (Wallet) Terintegrasi**: Fitur "Kelola Saldo" tersinkronisasi penuh antara Admin Web dan Backend.
 7. **Sentralisasi UI Admin**: Struktur menu Sidebar pada Web Admin telah difaktorisasi ke dalam satu komponen pusat (`js/components.js`).
 8. **Proteksi Check-In Berbasis Langganan**: Pada Mobile App, fitur *Check-in NFC* otomatis terblokir jika user berstatus **Non-Member** atau kadaluwarsa.
+9. **Export Laporan Member (Excel)**: Pemindahan dan pembaruan fitur cetak laporan per member ke halaman **Laporan** menggunakan library **ExcelJS**. Kini mendukung format `.xlsx` asli yang sangat rapi (bebas warning MS Excel) dengan tambahan opsi filter periode (Bulan Ini / Semua Waktu).
 
 ---
 

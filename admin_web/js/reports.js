@@ -107,6 +107,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (exportMemberPdf) {
             exportMemberPdf.addEventListener('click', () => exportToPDF('member'));
         }
+
+        const exportMemberIndividualBtn = document.getElementById('exportMemberIndividualBtn');
+        if (exportMemberIndividualBtn) {
+            exportMemberIndividualBtn.addEventListener('click', openExportMemberModal);
+        }
+
+        const closeExportMemberModal = document.getElementById('closeExportMemberModal');
+        const cancelExportMemberBtn = document.getElementById('cancelExportMemberBtn');
+        const confirmExportMemberBtn = document.getElementById('confirmExportMemberBtn');
+
+        if (closeExportMemberModal) closeExportMemberModal.addEventListener('click', () => { document.getElementById('exportMemberModal').classList.remove('active'); });
+        if (cancelExportMemberBtn) cancelExportMemberBtn.addEventListener('click', () => { document.getElementById('exportMemberModal').classList.remove('active'); });
+        if (confirmExportMemberBtn) confirmExportMemberBtn.addEventListener('click', exportMemberReportExcel);
     }
 
     // Initialize charts
@@ -506,6 +519,308 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Error exporting PDF:', error);
             showToast('Gagal export PDF', 'error');
         }
+    }
+
+    // Open Export Member Modal
+    async function openExportMemberModal() {
+        const modal = document.getElementById('exportMemberModal');
+        const select = document.getElementById('exportMemberSelect');
+        
+        select.innerHTML = '<option value="">Memuat member...</option>';
+        modal.classList.add('active');
+
+        try {
+            const response = await api.getAllUsers({ limit: 10000 });
+            if (response.success && response.data) {
+                if (response.data.length === 0) {
+                    select.innerHTML = '<option value="">Tidak ada member tersedia</option>';
+                    return;
+                }
+                
+                select.innerHTML = '<option value="">-- Pilih Member --</option>' + 
+                    response.data.map(u => `<option value="${u.id}">${u.name} (${u.email})</option>`).join('');
+            } else {
+                select.innerHTML = '<option value="">Gagal memuat member</option>';
+            }
+        } catch (error) {
+            console.error('Error loading members for export:', error);
+            select.innerHTML = '<option value="">Gagal memuat member</option>';
+            showToast('Gagal memuat daftar member', 'error');
+        }
+    }
+
+    // Process Member Report Export to Excel
+    async function exportMemberReportExcel() {
+        const select = document.getElementById('exportMemberSelect');
+        const periodSelect = document.getElementById('exportMemberPeriod');
+        const userId = select.value;
+        const userName = select.options[select.selectedIndex]?.text.split(' (')[0] || 'Member';
+        const period = periodSelect ? periodSelect.value : 'all';
+
+        if (!userId) {
+            showToast('Pilih member terlebih dahulu', 'warning');
+            return;
+        }
+
+        try {
+            const btn = document.getElementById('confirmExportMemberBtn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Memproses...';
+            btn.disabled = true;
+
+            const response = await api.getMemberFullHistory(userId);
+            
+            if (response.success && response.data) {
+                // Filter based on period
+                let data = response.data;
+                if (period === 'month') {
+                    const now = new Date();
+                    const currentMonth = now.getMonth();
+                    const currentYear = now.getFullYear();
+                    
+                    const filterByCurrentMonth = (dateStr) => {
+                        const d = new Date(dateStr);
+                        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                    };
+
+                    data = {
+                        checkins: (data.checkins || []).filter(c => filterByCurrentMonth(c.check_in_time)),
+                        transactions: (data.transactions || []).filter(t => filterByCurrentMonth(t.tanggal_transaksi)),
+                        wallet_history: (data.wallet_history || []).filter(w => filterByCurrentMonth(w.created_at))
+                    };
+                }
+
+                await generateMemberReportXLSX(userName, data, period);
+                document.getElementById('exportMemberModal').classList.remove('active');
+                showToast('Laporan berhasil diexport', 'success');
+            } else {
+                showToast('Gagal mengambil data laporan member', 'error');
+            }
+
+            btn.textContent = originalText;
+            btn.disabled = false;
+        } catch (error) {
+            console.error('Error exporting member report:', error);
+            showToast('Terjadi kesalahan saat mengexport laporan', 'error');
+            
+            const btn = document.getElementById('confirmExportMemberBtn');
+            btn.textContent = 'Download Laporan (XLS)';
+            btn.disabled = false;
+        }
+    }
+
+    // Generate proper XLSX using ExcelJS to avoid warning
+    async function generateMemberReportXLSX(memberName, data, period = 'all') {
+        const { checkins = [], transactions = [], wallet_history = [] } = data;
+        const totalSpent = transactions.reduce((sum, t) => sum + parseFloat(t.jumlah || t.amount || 0), 0);
+        const periodLabel = period === 'month' ? 'Bulan Ini' : 'Semua Waktu';
+
+        // Initialize workbook and worksheet
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'GymKu';
+        const sheet = workbook.addWorksheet('Laporan Member', { views: [{ showGridLines: false }] });
+
+        // Set default column widths
+        sheet.columns = [
+            { width: 15 }, { width: 25 }, { width: 20 },
+            { width: 20 }, { width: 15 }, { width: 15 }
+        ];
+
+        // Styles
+        const titleFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4CAF50' } };
+        const subtitleFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+        const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+        const borderAll = {
+            top: { style: 'thin' }, left: { style: 'thin' },
+            bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+
+        // Function to apply borders to a range
+        const applyBorder = (row, col) => {
+            const cell = sheet.getCell(row, col);
+            cell.border = borderAll;
+            return cell;
+        };
+
+        // Title
+        sheet.mergeCells('A1:F1');
+        const titleCell = sheet.getCell('A1');
+        titleCell.value = 'LAPORAN AKTIVITAS MEMBER';
+        titleCell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 14 };
+        titleCell.fill = titleFill;
+        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        titleCell.border = borderAll;
+
+        // Info
+        sheet.mergeCells('C2:F2');
+        sheet.getCell('A2').value = 'Nama Member:';
+        sheet.getCell('C2').value = memberName;
+        sheet.getCell('C2').font = { bold: true };
+        
+        sheet.mergeCells('C3:F3');
+        sheet.getCell('A3').value = 'Periode Laporan:';
+        sheet.getCell('C3').value = periodLabel;
+        sheet.getCell('C3').font = { bold: true };
+
+        sheet.mergeCells('C4:F4');
+        sheet.getCell('A4').value = 'Tanggal Unduh:';
+        sheet.getCell('C4').value = formatDateTime(new Date().toISOString());
+
+        for (let r = 2; r <= 4; r++) {
+            for (let c = 1; c <= 6; c++) applyBorder(r, c);
+            sheet.mergeCells(`A${r}:B${r}`);
+        }
+
+        // Empty row
+        sheet.addRow([]);
+
+        // Ringkasan
+        let r = 6;
+        sheet.mergeCells(`A${r}:F${r}`);
+        const sumTitle = sheet.getCell(`A${r}`);
+        sumTitle.value = `RINGKASAN (${periodLabel.toUpperCase()})`;
+        sumTitle.font = { bold: true };
+        sumTitle.fill = subtitleFill;
+        sumTitle.border = borderAll;
+
+        const addSummaryRow = (label, value, isBold = false) => {
+            r++;
+            sheet.getCell(`A${r}`).value = label;
+            sheet.getCell(`C${r}`).value = value;
+            if (isBold) sheet.getCell(`C${r}`).font = { bold: true };
+            sheet.mergeCells(`A${r}:B${r}`);
+            sheet.mergeCells(`C${r}:F${r}`);
+            for (let c = 1; c <= 6; c++) applyBorder(r, c);
+        };
+
+        addSummaryRow('Total Check-in:', `${checkins.length} kali`);
+        addSummaryRow('Total Transaksi:', transactions.length);
+        addSummaryRow('Total Top-up:', wallet_history.filter(w => w.jenis === 'topup').length);
+        addSummaryRow('Total Pengeluaran:', `Rp ${totalSpent.toLocaleString('id-ID')}`, true);
+
+        // Checkin History
+        r += 2;
+        sheet.mergeCells(`A${r}:F${r}`);
+        const checkTitle = sheet.getCell(`A${r}`);
+        checkTitle.value = 'RIWAYAT CHECK-IN';
+        checkTitle.font = { bold: true };
+        checkTitle.fill = subtitleFill;
+        checkTitle.border = borderAll;
+
+        r++;
+        if (checkins.length > 0) {
+            sheet.getCell(`A${r}`).value = 'No';
+            sheet.getCell(`B${r}`).value = 'Waktu Check-in';
+            sheet.getCell(`C${r}`).value = 'Status';
+            sheet.mergeCells(`C${r}:F${r}`);
+            for (let c = 1; c <= 6; c++) {
+                const cell = applyBorder(r, c);
+                cell.font = { bold: true };
+                cell.fill = headerFill;
+            }
+            
+            checkins.forEach((c, index) => {
+                r++;
+                sheet.getCell(`A${r}`).value = index + 1;
+                sheet.getCell(`B${r}`).value = formatDateTime(c.check_in_time);
+                sheet.getCell(`C${r}`).value = 'Berhasil';
+                sheet.mergeCells(`C${r}:F${r}`);
+                for (let col = 1; col <= 6; col++) applyBorder(r, col);
+            });
+        } else {
+            sheet.mergeCells(`A${r}:F${r}`);
+            sheet.getCell(`A${r}`).value = 'Tidak ada riwayat check-in';
+            for (let col = 1; col <= 6; col++) applyBorder(r, col);
+        }
+
+        // Transactions History
+        r += 2;
+        sheet.mergeCells(`A${r}:F${r}`);
+        const transTitle = sheet.getCell(`A${r}`);
+        transTitle.value = 'RIWAYAT TRANSAKSI PAKET';
+        transTitle.font = { bold: true };
+        transTitle.fill = subtitleFill;
+        transTitle.border = borderAll;
+
+        r++;
+        if (transactions.length > 0) {
+            ['ID Transaksi', 'Tanggal', 'Paket', 'Metode', 'Jumlah', 'Status'].forEach((v, i) => {
+                const cell = applyBorder(r, i + 1);
+                cell.value = v;
+                cell.font = { bold: true };
+                cell.fill = headerFill;
+            });
+            
+            transactions.forEach(t => {
+                r++;
+                const statusLabel = t.status === 'success' ? 'Berhasil' : t.status === 'pending' ? 'Pending' : 'Gagal';
+                sheet.getCell(`A${r}`).value = t.id;
+                sheet.getCell(`B${r}`).value = formatDateTime(t.tanggal_transaksi);
+                sheet.getCell(`C${r}`).value = t.package_name || '-';
+                sheet.getCell(`D${r}`).value = t.metode_pembayaran || '-';
+                const amtCell = sheet.getCell(`E${r}`);
+                amtCell.value = parseFloat(t.jumlah || t.amount || 0);
+                amtCell.numFmt = '#,##0';
+                sheet.getCell(`F${r}`).value = statusLabel;
+                for (let col = 1; col <= 6; col++) applyBorder(r, col);
+            });
+        } else {
+            sheet.mergeCells(`A${r}:F${r}`);
+            sheet.getCell(`A${r}`).value = 'Tidak ada riwayat transaksi';
+            for (let col = 1; col <= 6; col++) applyBorder(r, col);
+        }
+
+        // Wallet History
+        r += 2;
+        sheet.mergeCells(`A${r}:F${r}`);
+        const walletTitle = sheet.getCell(`A${r}`);
+        walletTitle.value = 'RIWAYAT SALDO & TOP-UP';
+        walletTitle.font = { bold: true };
+        walletTitle.fill = subtitleFill;
+        walletTitle.border = borderAll;
+
+        r++;
+        if (wallet_history.length > 0) {
+            sheet.getCell(`A${r}`).value = 'Tanggal';
+            sheet.getCell(`B${r}`).value = 'Jenis';
+            sheet.getCell(`C${r}`).value = 'Jumlah';
+            sheet.getCell(`D${r}`).value = 'Keterangan';
+            sheet.mergeCells(`D${r}:F${r}`);
+            for (let c = 1; c <= 6; c++) {
+                const cell = applyBorder(r, c);
+                cell.font = { bold: true };
+                cell.fill = headerFill;
+            }
+            
+            wallet_history.forEach(w => {
+                r++;
+                const jenisLabel = w.jenis === 'topup' ? 'Top-up' : w.jenis === 'payment' ? 'Pembayaran' : w.jenis;
+                sheet.getCell(`A${r}`).value = formatDateTime(w.created_at);
+                sheet.getCell(`B${r}`).value = jenisLabel;
+                const wAmt = sheet.getCell(`C${r}`);
+                wAmt.value = parseFloat(w.jumlah || 0);
+                wAmt.numFmt = '#,##0';
+                sheet.getCell(`D${r}`).value = w.keterangan || '-';
+                sheet.mergeCells(`D${r}:F${r}`);
+                for (let col = 1; col <= 6; col++) applyBorder(r, col);
+            });
+        } else {
+            sheet.mergeCells(`A${r}:F${r}`);
+            sheet.getCell(`A${r}`).value = 'Tidak ada riwayat saldo';
+            for (let col = 1; col <= 6; col++) applyBorder(r, col);
+        }
+
+        // Write and Download
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const safeName = memberName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+        const periodFileLabel = period === 'month' ? 'Bulan_Ini' : 'Semua';
+        a.download = `Laporan_Member_${safeName}_${periodFileLabel}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
