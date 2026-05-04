@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <tr>
                 <td><span class="badge badge-primary">${pkg.id || pkg.slug || '-'}</span></td>
                 <td style="font-weight:600;">${pkg.nama || pkg.title || '-'}</td>
-                <td>${pkg.durasi || pkg.duration || '-'} Hari</td>
+                <td>${pkg.durasi !== undefined ? pkg.durasi : (pkg.duration || '-')} Hari</td>
                 <td style="color:#4ade80;font-weight:bold;">${formatCurrency(pkg.harga || pkg.price || 0)}</td>
                 <td>
                     <button class="btn btn-secondary btn-sm" onclick="editPackage('${pkg.id}')">
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('editPackageId').value = pkg.id;
         document.getElementById('editPackageName').value = pkg.nama || pkg.title || '';
         document.getElementById('editPackagePrice').value = pkg.harga || pkg.price || 0;
-        document.getElementById('editPackageDuration').value = pkg.durasi || parseInt((pkg.duration || '30').replace(/\D/g, '')) || 30;
+        document.getElementById('editPackageDuration').value = pkg.durasi !== undefined ? pkg.durasi : (parseInt((pkg.duration || '30').replace(/\D/g, '')) || 30);
         document.getElementById('editPackageDesc').value = pkg.deskripsi || '';
         document.getElementById('editPackageFeatures').value = Array.isArray(pkg.fitur)
             ? pkg.fitur.join('\n')
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const features = document.getElementById('editPackageFeatures').value
             .split('\n').map(f => f.trim()).filter(f => f.length > 0);
 
-        if (!name || isNaN(price) || price < 0 || isNaN(duration) || duration < 1) {
+        if (!name || isNaN(price) || price < 0 || isNaN(duration) || duration < 0) {
             showToast('Mohon lengkapi semua kolom dengan benar', 'error');
             return;
         }
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!name)                          { showToast('Nama paket wajib diisi', 'error'); return; }
         if (!slug)                          { showToast('Slug wajib diisi', 'error'); return; }
         if (isNaN(price) || price < 1000)   { showToast('Harga minimal Rp 1.000', 'error'); return; }
-        if (isNaN(duration) || duration < 1){ showToast('Durasi minimal 1 hari', 'error'); return; }
+        if (isNaN(duration) || duration < 0){ showToast('Durasi minimal 0 hari (untuk paket harian)', 'error'); return; }
 
         if (packages.some(p => (p.slug || p.id) === slug)) {
             showToast(`Slug "${slug}" sudah digunakan paket lain`, 'error');

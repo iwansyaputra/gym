@@ -169,7 +169,11 @@ const createPayment = async (req, res) => {
         }
 
         const tanggalBerakhir = new Date(tanggalMulai);
-        tanggalBerakhir.setDate(tanggalBerakhir.getDate() + selectedPackage.durasi);
+        if (selectedPackage.durasi === 0) {
+            tanggalBerakhir.setHours(23, 59, 59, 999);
+        } else {
+            tanggalBerakhir.setDate(tanggalBerakhir.getDate() + selectedPackage.durasi);
+        }
 
         await connection.beginTransaction();
         transactionStarted = true;

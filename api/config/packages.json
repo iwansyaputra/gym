@@ -1,5 +1,17 @@
 [
     {
+        "id": "0",
+        "slug": "harian",
+        "nama": "Paket Harian",
+        "durasi": 1,
+        "harga": 25000,
+        "deskripsi": "Akses gym untuk hari ini saja (hingga 23:59)",
+        "fitur": [
+            "Akses semua alat gym",
+            "Berlaku sampai ganti hari"
+        ]
+    },
+    {
         "id": "1",
         "slug": "bulanan",
         "nama": "Paket Bulanan",

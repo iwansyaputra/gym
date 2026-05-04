@@ -348,13 +348,17 @@ const updateUserByAdmin = async (req, res) => {
                 const selectedPackage = pkgData.find(p => p.id == package_id);
                 
                 if (selectedPackage) {
-                    const durasi = selectedPackage.durasi || 30;
+                    const durasi = selectedPackage.durasi !== undefined ? selectedPackage.durasi : 30;
                     const namaPaket = selectedPackage.nama || selectedPackage.title;
                     const harga = selectedPackage.harga || 0;
                     
                     const startDate = new Date();
                     const endDate = new Date();
-                    endDate.setDate(startDate.getDate() + durasi);
+                    if (durasi === 0) {
+                        endDate.setHours(23, 59, 59, 999);
+                    } else {
+                        endDate.setDate(startDate.getDate() + durasi);
+                    }
 
                     // Check for existing active membership
                     const [activeMem] = await pool.query("SELECT id FROM memberships WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1", [id]);

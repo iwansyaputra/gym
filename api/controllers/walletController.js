@@ -169,7 +169,12 @@ const extendWithWallet = async (req, res) => {
         }
 
         const tanggalBerakhir = new Date(tanggalMulai);
-        tanggalBerakhir.setDate(tanggalBerakhir.getDate() + durasi);
+        if (durasi === 0) {
+            // Paket harian habis di penghujung hari yang sama
+            tanggalBerakhir.setHours(23, 59, 59, 999);
+        } else {
+            tanggalBerakhir.setDate(tanggalBerakhir.getDate() + durasi);
+        }
 
         await connection.beginTransaction();
         transactionStarted = true;
