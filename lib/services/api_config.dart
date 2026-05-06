@@ -14,7 +14,7 @@ class ApiConfig {
   // 📱 KONFIGURASI IP (Pilih salah satu):
 
   // Opsi 1: IP Saat Ini (Ganti sesuai ipconfig)
-  static const String _currentIP = '192.168.100.64'; // ✅ IP WiFi Aktif (ipconfig)
+  static const String _currentIP = '192.168.22.129'; // ✅ IP Public (API tetap port 3000)
 
   // HOSTING (Tidak Aktif - Error 503)
   // static const String _currentIP = 'https://www.bahariinn.com/gym';
