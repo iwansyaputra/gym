@@ -5,51 +5,26 @@ class ApiConfig {
   // ==================== BASE URL ====================
   // URL dasar server API yang digunakan untuk semua request
 
-  // 🔧 CARA GANTI IP SAAT PINDAH WIFI:
-  // 1. Jalankan 'ipconfig' di CMD laptop
-  // 2. Cari "IPv4 Address" di adapter WiFi yang aktif
-  // 3. Ganti IP di bawah dengan IP baru
-  // 4. Hot reload app (tekan 'r' di terminal Flutter)
+  // 🌐 MODE PRODUCTION — API sudah di-hosting di:
+  static const String _productionUrl = 'https://api.gymku.motalindo.com';
 
-  // 📱 KONFIGURASI IP (Pilih salah satu):
-
-  // Opsi 1: IP Saat Ini (Ganti sesuai ipconfig)
-  static const String _currentIP = '192.168.22.129'; // ✅ IP Public (API tetap port 3000)
-
-  // HOSTING (Tidak Aktif - Error 503)
-  // static const String _currentIP = 'https://www.bahariinn.com/gym';
+  // ————— Mode Development (nonaktifkan saat production) —————
+  // Opsi 1: IP WiFi Lokal (Ganti sesuai ipconfig)
+  // static const String _currentIP = '192.168.22.129';
 
   // Opsi 2: Localhost (untuk emulator Android atau Windows Desktop)
-  static const String _localhost = 'localhost';
+  // static const String _localhost = 'localhost';
 
   // Opsi 3: IP 10.0.2.2 (khusus untuk Android Emulator)
-  static const String _emulatorIP = '10.0.2.2';
+  // static const String _emulatorIP = '10.0.2.2';
 
-  // 🎯 PILIH MODE (true/false):
-  static const bool _useLocalhost =
-      false; // ✅ NONAKTIF - Pakai IP WiFi untuk HP
-  static const bool _useEmulator =
-      false; // Set true jika pakai Android Emulator
+  // 🎯 Base URL — Mengarah ke server production
+  static String get baseUrl => '$_productionUrl/api';
 
-  // Base URL otomatis sesuai mode
-  static String get baseUrl {
-    if (_useEmulator) {
-      return 'http://$_emulatorIP:3000/api';
-    } else if (_useLocalhost) {
-      return 'http://$_localhost:3000/api';
-    } else {
-      if (_currentIP.startsWith('http')) {
-        return '$_currentIP/api';
-      }
-      return 'http://$_currentIP:3000/api';
-    }
-  }
-
-  // 📋 Daftar IP yang pernah digunakan (untuk referensi):
-  // - WiFi Rumah: 192.168.1.xxx
-  // - WiFi Kampus: 192.168.100.203
-  // - Hotspot HP: 192.168.43.xxx
-  // Cek dengan: ipconfig (Windows) atau ifconfig (Mac/Linux)
+  // 📋 Catatan:
+  // - Production: https://api.gymku.metalindo.com
+  // - Dev lokal: ubah baseUrl ke 'http://<IP>:3000/api'
+  // - Cek IP lokal: ipconfig (Windows) / ifconfig (Mac/Linux)
 
   // ==================== AUTH ENDPOINTS ====================
   /// Endpoint untuk register user baru

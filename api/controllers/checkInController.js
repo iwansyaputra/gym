@@ -43,6 +43,9 @@ const lookupMember = async (req, res) => {
 };
 
 // Check-in with NFC
+// Bisa dipanggil oleh:
+// 1. Python NFC bridge: kirim header X-NFC-Secret (tanpa JWT)
+// 2. Admin web: kirim JWT token biasa (via middleware auth)
 const checkInNFC = async (req, res) => {
     try {
         const { nfc_id } = req.body;
@@ -51,6 +54,17 @@ const checkInNFC = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'NFC ID harus diisi'
+            });
+        }
+
+        // ── Validasi: bisa dari Python bridge (X-NFC-Secret) atau JWT user ──
+        const nfcSecret = req.headers['x-nfc-secret'];
+        const isFromBridge = nfcSecret && nfcSecret === process.env.NFC_SECRET_KEY;
+
+        if (!isFromBridge && !req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized: butuh X-NFC-Secret atau JWT token'
             });
         }
 
@@ -84,9 +98,12 @@ const checkInNFC = async (req, res) => {
         );
 
         if (memberships.length === 0) {
+            // Ambil nama member meski membership expired (untuk tampil di display)
+            const [expiredUser] = await pool.query('SELECT nama as name FROM users WHERE id = ?', [userId]);
             return res.status(403).json({
                 success: false,
-                message: 'Membership Anda sudah tidak aktif. Silakan perpanjang terlebih dahulu.'
+                message: 'Membership tidak aktif. Silakan perpanjang terlebih dahulu.',
+                member: expiredUser.length > 0 ? { name: expiredUser[0].name } : null
             });
         }
 
@@ -101,7 +118,6 @@ const checkInNFC = async (req, res) => {
 
         try {
             // ── Atomic INSERT: hanya insert jika belum check-in 60 detik terakhir ──
-            // SELECT dan INSERT dalam 1 query → tidak ada race condition
             const [result] = await pool.query(
                 `INSERT INTO check_ins (user_id, check_in_method)
                  SELECT ?, 'nfc' FROM DUAL
@@ -120,7 +136,6 @@ const checkInNFC = async (req, res) => {
                 });
             }
         } finally {
-            // Selalu hapus lock, bahkan jika error
             _checkinLocks.delete(userId);
         }
 
@@ -133,6 +148,7 @@ const checkInNFC = async (req, res) => {
                 u.hp as phone,
                 m.paket as package_name,
                 m.tanggal_berakhir as membership_expiry,
+                (SELECT COUNT(*) FROM check_ins WHERE user_id = u.id) as total_checkins,
                 (SELECT check_in_time FROM check_ins WHERE user_id = u.id ORDER BY check_in_time DESC LIMIT 1 OFFSET 1) as last_checkin
              FROM users u
              LEFT JOIN memberships m ON u.id = m.user_id AND m.status = 'active' AND m.tanggal_berakhir >= CURDATE()
@@ -141,13 +157,21 @@ const checkInNFC = async (req, res) => {
             [userId]
         );
 
+        const member = users[0];
+
         res.json({
             success: true,
             message: 'Check-in berhasil!',
-            data: {
-                user: users[0],
-                check_in_time: moment().format('YYYY-MM-DD HH:mm:ss')
-            }
+            member: {
+                id: member.id,
+                name: member.name,
+                email: member.email,
+                phone: member.phone,
+                package_name: member.package_name,
+                membership_expiry: member.membership_expiry,
+                total_checkins: member.total_checkins,
+            },
+            check_in_time: moment().tz('Asia/Jakarta').format('YYYY-MM-DD HH:mm:ss'),
         });
 
     } catch (error) {

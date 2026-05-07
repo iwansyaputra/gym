@@ -1,6 +1,7 @@
 @echo off
 echo ============================================
 echo  NFC Bridge — ACR122U Reader untuk GymKu
+echo  Terhubung ke: https://api.gymku.motalindo.com
 echo ============================================
 echo.
 
@@ -13,7 +14,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Cek dependensi Python
+:: Cek dan install dependensi Python
 python -c "import smartcard" >nul 2>&1
 if errorlevel 1 (
     echo [INFO] Menginstall pyscard...
@@ -28,9 +29,17 @@ if errorlevel 1 (
     echo.
 )
 
+python -c "import requests" >nul 2>&1
+if errorlevel 1 (
+    echo [INFO] Menginstall requests...
+    pip install requests
+    echo.
+)
+
 echo [OK] Semua dependensi tersedia.
 echo.
 echo [INFO] Pastikan ACR122U sudah tercolok ke USB
+echo [INFO] Python akan langsung hit API: https://api.gymku.motalindo.com/api/check-in/nfc
 echo [INFO] Buka checkin.html di browser setelah ini
 echo.
 

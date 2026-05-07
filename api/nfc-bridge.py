@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-NFC Bridge Server - ACR122U -> WebSocket -> checkin.html / members.html
-========================================================================
+NFC Bridge Server - ACR122U -> WebSocket -> Backend API
+=======================================================
 Fitur:
-  - READ: Baca nfc_id dari HP Android HCE / kartu NFC fisik -> kirim ke browser
+  - READ: Baca nfc_id dari HP Android HCE / kartu NFC fisik
+  - CHECK-IN: Langsung kirim ke API https://api.gymku.motalindo.com
   - WRITE: Terima perintah write_card dari browser -> tulis user_id ke kartu NFC
+  - BROADCAST: Kirim hasil check-in ke semua browser yang terhubung via WebSocket
 
 Persyaratan:
-    pip install pyscard websockets
+    pip install pyscard websockets requests
 
 Jalankan:
     python nfc-bridge.py
@@ -18,6 +20,21 @@ import json
 import logging
 import time
 from datetime import datetime
+
+try:
+    import requests
+    REQUESTS_OK = True
+except ImportError:
+    REQUESTS_OK = False
+    import urllib.request
+    import urllib.error
+
+# ──────────────────────────────────────────────────────────────────────────────
+# KONFIGURASI API
+# ──────────────────────────────────────────────────────────────────────────────
+API_BASE_URL = "https://api.gymku.motalindo.com/api"
+NFC_SECRET_KEY = "nfc-bridge-secret-2024"  # Harus sama dengan backend .env NFC_SECRET_KEY
+CHECKIN_ENDPOINT = f"{API_BASE_URL}/check-in/nfc"
 
 # --- Cek dependensi ---
 try:
@@ -361,12 +378,20 @@ class NFCCardObserver(CardObserver):
 
                     _last_sent[nfc_id] = now
                     log.info(f"NFC ID: '{nfc_id}' (source: {result['source']})")
+
+                    # ── Kirim check-in ke backend API ──────────────────────────
+                    log.info(f"→ POST {CHECKIN_ENDPOINT} (nfc_id={nfc_id})")
+                    api_result = checkin_to_api(nfc_id)
+                    log.info(f"← API response: {api_result}")
+
                     payload = {
                         "type": "card_detected",
                         "nfc_id": nfc_id,
                         "source": result['source'],
                         "raw": result['raw'],
                         "timestamp": datetime.now().isoformat(),
+                        # ── Hasil dari backend API ──
+                        "checkin": api_result,
                     }
                 else:
                     log.error("Gagal membaca NFC ID")
@@ -392,6 +417,55 @@ class NFCCardObserver(CardObserver):
                 card_event_queue.put_nowait,
                 {"type": "card_removed", "timestamp": datetime.now().isoformat()}
             )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# API Check-in Helper
+# ──────────────────────────────────────────────────────────────────────────────
+def checkin_to_api(nfc_id: str) -> dict:
+    """
+    Kirim POST ke backend API untuk melakukan check-in member via nfc_id.
+    Menggunakan NFC_SECRET_KEY sebagai autentikasi (tidak perlu JWT user).
+    Returns dict: { success, message, member_name, gym_name, membership_status }
+    """
+    body = json.dumps({"nfc_id": nfc_id}).encode("utf-8")
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-NFC-Secret": NFC_SECRET_KEY,
+    }
+
+    try:
+        if REQUESTS_OK:
+            resp = requests.post(
+                CHECKIN_ENDPOINT,
+                data=body,
+                headers=headers,
+                timeout=8
+            )
+            data = resp.json()
+            if resp.status_code in (200, 201):
+                log.info(f"✅ Check-in sukses: {data.get('member', {}).get('name', nfc_id)}")
+            else:
+                log.warning(f"⚠️ Check-in API error {resp.status_code}: {data.get('message', '')}")
+            return data
+        else:
+            # Fallback urllib (jika requests tidak terpasang)
+            req = urllib.request.Request(
+                CHECKIN_ENDPOINT,
+                data=body,
+                headers=headers,
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                raw = resp.read().decode("utf-8")
+                return json.loads(raw)
+    except Exception as e:
+        log.error(f"❌ Gagal connect ke API: {e}")
+        return {
+            "success": False,
+            "message": f"Tidak bisa terhubung ke server: {str(e)}"
+        }
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -492,11 +566,15 @@ async def main():
     card_monitor.addObserver(observer)
 
     print(f"\n✅ NFC Bridge siap!")
-    print(f"   WebSocket : ws://localhost:{WS_PORT}")
-    print(f"   Reader    : {available_readers[0]}")
-    print(f"   AID       : A0 00 DA DA DA DA DA (Flutter HCE)")
-    print(f"\n   Tempelkan HP (Flutter app aktif) ke ACR122U")
-    print(f"   Buka checkin.html di browser\n")
+    print(f"   WebSocket  : ws://localhost:{WS_PORT}")
+    print(f"   Backend API: {CHECKIN_ENDPOINT}")
+    print(f"   Reader     : {available_readers[0]}")
+    print(f"   AID        : A0 00 DA DA DA DA DA (Flutter HCE)")
+    print(f"\n   Cara kerja:")
+    print(f"   1. Tempelkan kartu NFC ke ACR122U")
+    print(f"   2. Python baca nfc_id lalu langsung POST ke backend API")
+    print(f"   3. Hasil check-in dikirim ke browser via WebSocket")
+    print(f"\n   Buka admin_web/checkin.html di browser lokal\n")
 
     async with websockets.serve(ws_handler, "localhost", WS_PORT):
         await forward_card_events()
