@@ -25,15 +25,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     /**
      * Hubungkan ke nfc-bridge.py yang berjalan di localhost:8765
      * Bridge ini membaca kartu dari ACR122U dan mengirim NFC ID via WebSocket.
+     *
+     * PENTING — Mixed Content:
+     * Website ini HTTPS, sehingga browser memblokir ws:// (plain WebSocket).
+     * Solusi: Jalankan nfc-bridge.py lalu buka Chrome dengan flag:
+     *   --allow-insecure-localhost
+     * Atau gunakan wss:// dengan self-signed cert (lihat README).
+     *
      * Jika bridge tidak aktif, fallback ke Web NFC API (mobile Chrome).
      */
     function connectNFCBridge() {
-        const WS_URL = 'ws://localhost:8765';
+        // Coba wss:// (SSL) dulu — diperlukan saat membuka halaman dari HTTPS
+        // Fallback ke ws:// jika wss gagal (butuh flag browser atau localhost exception)
+        const isHttps = location.protocol === 'https:';
+        const WS_PRIMARY   = 'ws://localhost:8765';
+        const WS_SECONDARY = 'ws://127.0.0.1:8765';
 
         updateScannerStatus('waiting', 'Menghubungkan ke NFC Bridge...');
 
+        // Jika halaman HTTPS, browser akan memblokir ws:// secara default.
+        // Tampilkan peringatan dulu, tetap coba koneksi.
+        if (isHttps) {
+            console.warn('[NFC Bridge] ⚠️ Halaman HTTPS — ws:// mungkin diblokir browser (mixed content).');
+            console.warn('[NFC Bridge] Buka Chrome dengan: chrome --allow-insecure-localhost');
+            console.warn('[NFC Bridge] Atau buka halaman Check-in NFC dari: http://gymku.motalindo.com/checkin.html');
+        }
+
+        _tryConnectWS(WS_PRIMARY, WS_SECONDARY);
+    }
+
+    function _tryConnectWS(url, fallbackUrl) {
         try {
-            nfcBridgeWS = new WebSocket(WS_URL);
+            nfcBridgeWS = new WebSocket(url);
         } catch (e) {
             console.warn('[NFC Bridge] Tidak bisa membuat WebSocket:', e);
             fallbackToWebNFC();
@@ -42,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // ── Connected ──────────────────────────────────────────────────────
         nfcBridgeWS.onopen = () => {
-            console.log('[NFC Bridge] ✅ Terhubung ke ws://localhost:8765');
+            console.log(`[NFC Bridge] ✅ Terhubung ke ${url}`);
             updateScannerStatus('scanning', 'ACR122U siap — Tempelkan kartu atau HP');
             showBridgeIndicator(true);
         };
@@ -99,8 +122,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // ── Error / gagal connect ──────────────────────────────────────────
         nfcBridgeWS.onerror = (e) => {
-            console.warn('[NFC Bridge] Tidak bisa terhubung. Coba Web NFC / input manual.');
+            console.warn(`[NFC Bridge] Tidak bisa terhubung ke ${url}.`);
             showBridgeIndicator(false);
+            // Jika ada fallback URL, coba sekali lagi
+            if (fallbackUrl) {
+                console.info(`[NFC Bridge] Mencoba fallback: ${fallbackUrl}`);
+                setTimeout(() => _tryConnectWS(fallbackUrl, null), 1000);
+            }
         };
 
         // ── Koneksi putus — coba reconnect setiap 5 detik ─────────────────

@@ -1,8 +1,10 @@
 @echo off
-echo ============================================
-echo  NFC Bridge — ACR122U Reader untuk GymKu
-echo  Terhubung ke: https://api.gymku.motalindo.com
-echo ============================================
+chcp 65001 >nul
+echo ============================================================
+echo   NFC Bridge — ACR122U Reader untuk GymKu
+echo   API Server: https://api.gymku.motalindo.com
+echo   WebSocket : ws://localhost:8765 (berjalan di komputer ini)
+echo ============================================================
 echo.
 
 :: Cek apakah Python tersedia
@@ -38,9 +40,24 @@ if errorlevel 1 (
 
 echo [OK] Semua dependensi tersedia.
 echo.
-echo [INFO] Pastikan ACR122U sudah tercolok ke USB
-echo [INFO] Python akan langsung hit API: https://api.gymku.motalindo.com/api/check-in/nfc
-echo [INFO] Buka checkin.html di browser setelah ini
+echo ============================================================
+echo   PANDUAN PENGGUNAAN:
+echo.
+echo   1. Pastikan ACR122U sudah tercolok ke USB komputer ini
+echo   2. NFC Bridge akan berjalan di ws://localhost:8765
+echo   3. Buka Admin Web di browser dengan cara:
+echo.
+echo      [CARA 1 - Disarankan] Jalankan Chrome dengan flag khusus:
+echo      Dobel klik: buka-chrome-checkin.bat
+echo.
+echo      [CARA 2] Buka Chrome, ketik di address bar:
+echo      chrome://flags/#unsafely-treat-insecure-origin-as-secure
+echo      Masukkan: http://localhost:8765
+echo      Lalu buka: https://gymku.motalindo.com/checkin.html
+echo.
+echo   Python akan langsung POST ke:
+echo   https://api.gymku.motalindo.com/api/check-in/nfc
+echo ============================================================
 echo.
 
 cd /d "%~dp0"
