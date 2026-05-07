@@ -37,8 +37,18 @@ class ApiClient {
 
             const data = await response.json();
 
+            // Untuk status 401 — logout paksa
+            if (response.status === 401) {
+                auth.logout();
+                throw new Error(data.message || 'Unauthorized');
+            }
+
+            // Untuk status lain yang bukan ok (4xx/5xx), kembalikan data apa adanya
+            // sehingga caller bisa membaca data.success dan data.message dengan benar
+            // (contoh: 429 rate-limit pada check-in harus dibaca, bukan di-throw)
             if (!response.ok) {
-                throw new Error(data.message || 'Request failed');
+                // Kembalikan data JSON bukan throw, biar caller yang handle
+                return data;
             }
 
             return data;
@@ -49,11 +59,6 @@ class ApiClient {
 
             // Debug log for failed fetch URL
             console.error('Fetch failed:', url, error);
-
-            // Handle unauthorized
-            if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-                auth.logout();
-            }
 
             throw error;
         }

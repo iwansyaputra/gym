@@ -233,8 +233,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error('Error auto check-in:', error);
-            updateScannerStatus('error', 'Gagal memproses check-in');
-            showToast(error.message || 'Terjadi kesalahan', 'error');
+            // Hanya tampilkan error jaringan/timeout di sini
+            // Respons 4xx dari server (seperti 429) sudah ditangani di blok else di atas
+            updateScannerStatus('error', 'Gagal terhubung ke server');
+            showToast(error.message || 'Gagal terhubung ke server', 'error');
         } finally {
             isProcessing = false;
         }

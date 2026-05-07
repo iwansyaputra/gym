@@ -116,6 +116,7 @@ const checkInNFC = async (req, res) => {
         }
         _checkinLocks.add(userId);
 
+        let insertAffectedRows = 0;
         try {
             // ── Atomic INSERT: hanya insert jika belum check-in 60 detik terakhir ──
             const [result] = await pool.query(
@@ -128,15 +129,18 @@ const checkInNFC = async (req, res) => {
                  )`,
                 [userId, userId]
             );
-
-            if (result.affectedRows === 0) {
-                return res.status(429).json({
-                    success: false,
-                    message: 'Sudah check-in baru saja. Tunggu 1 menit sebelum check-in lagi.'
-                });
-            }
+            insertAffectedRows = result.affectedRows;
         } finally {
+            // Selalu hapus lock, baik berhasil maupun gagal
             _checkinLocks.delete(userId);
+        }
+
+        // Cek hasil INSERT setelah lock dilepas
+        if (insertAffectedRows === 0) {
+            return res.status(429).json({
+                success: false,
+                message: 'Sudah check-in baru saja. Tunggu 1 menit sebelum check-in lagi.'
+            });
         }
 
         // Get full user info & membership stats for UI display
