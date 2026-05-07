@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     lastScannedUid = msg.nfc_id;
                     scanCooldown = now;
 
-                    handleNFCScan(msg.nfc_id);
+                    handleNFCScan(msg.nfc_id, msg.checkin);
                     break;
 
                 case 'card_removed':
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ─── SCAN HANDLER — auto check-in langsung (1 tap = 1 check-in) ───────────
-    async function handleNFCScan(nfcId) {
+    async function handleNFCScan(nfcId, preCheckinResult = null) {
         if (isProcessing) return;           // Cegah scan ganda saat masih proses
         isProcessing = true;
 
@@ -210,9 +210,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Step 2: Auto check-in langsung (tidak perlu klik konfirmasi)
+            // Step 2: Auto check-in langsung
             updateScannerStatus('scanning', `${currentMember.name} ditemukan — Check-in...`);
-            const checkinResp = await api.checkInNFC(nfcId);
+            
+            // Gunakan hasil dari Python nfc-bridge jika ada, hindari hit API dua kali
+            const checkinResp = preCheckinResult ? preCheckinResult : await api.checkInNFC(nfcId);
 
             if (checkinResp.success) {
                 updateScannerStatus('success', `✅ ${currentMember.name} berhasil check-in!`);
