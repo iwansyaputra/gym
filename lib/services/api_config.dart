@@ -8,23 +8,8 @@ class ApiConfig {
   // 🌐 MODE PRODUCTION — API sudah di-hosting di:
   static const String _productionUrl = 'https://api.gymku.motalindo.com';
 
-  // ————— Mode Development (nonaktifkan saat production) —————
-  // Opsi 1: IP WiFi Lokal (Ganti sesuai ipconfig)
-  // static const String _currentIP = '192.168.22.129';
-
-  // Opsi 2: Localhost (untuk emulator Android atau Windows Desktop)
-  // static const String _localhost = 'localhost';
-
-  // Opsi 3: IP 10.0.2.2 (khusus untuk Android Emulator)
-  // static const String _emulatorIP = '10.0.2.2';
-
   // 🎯 Base URL — Mengarah ke server production
   static String get baseUrl => '$_productionUrl/api';
-
-  // 📋 Catatan:
-  // - Production: https://api.gymku.metalindo.com
-  // - Dev lokal: ubah baseUrl ke 'http://<IP>:3000/api'
-  // - Cek IP lokal: ipconfig (Windows) / ifconfig (Mac/Linux)
 
   // ==================== AUTH ENDPOINTS ====================
   /// Endpoint untuk register user baru

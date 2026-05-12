@@ -1,4 +1,4 @@
-package com.example.membership_gym
+package com.motalindo.gymku
 
 import io.flutter.embedding.android.FlutterActivity
 

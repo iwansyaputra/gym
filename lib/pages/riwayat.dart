@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/payment_service.dart';
 import '../services/api_service.dart';
+import 'dart:async';
 
 class RiwayatPage extends StatefulWidget {
   const RiwayatPage({super.key});
@@ -16,6 +17,7 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
   bool _isLoadingTransactions = true;
   bool _isLoadingCheckIns = true;
   late TabController _tabController;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
@@ -23,10 +25,19 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
     _tabController = TabController(length: 2, vsync: this);
     _loadTransactions();
     _loadCheckIns();
+    
+    // Timer untuk auto-refresh data check-in setiap 5 detik (simulasi realtime)
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      // Hanya refresh jika sedang di tab Check-in
+      if (mounted && _tabController.index == 1) {
+        _refreshCheckInsSilently();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _pollingTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -58,6 +69,32 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
         }
         _isLoadingCheckIns = false;
       });
+    }
+  }
+
+  // Refresh data tanpa mengubah state _isLoadingCheckIns (supaya tidak muncul loading muter-muter)
+  Future<void> _refreshCheckInsSilently() async {
+    final result = await ApiService.getCheckInHistory();
+
+    if (mounted) {
+      if (result['success'] == true && result['data'] != null && result['data']['check_ins'] != null) {
+        final newCheckIns = result['data']['check_ins'] as List;
+        // Hanya update UI jika ada perubahan jumlah data (misal ada checkin baru)
+        if (newCheckIns.length != _checkIns.length) {
+          setState(() {
+            _checkIns = newCheckIns;
+          });
+        } else if (newCheckIns.isNotEmpty && _checkIns.isNotEmpty) {
+          // Atau jika data paling atas berbeda (id atau waktunya berbeda)
+          final latestNew = newCheckIns[0];
+          final latestOld = _checkIns[0];
+          if (latestNew['id'] != latestOld['id'] || latestNew['check_in_time'] != latestOld['check_in_time']) {
+            setState(() {
+              _checkIns = newCheckIns;
+            });
+          }
+        }
+      }
     }
   }
 
