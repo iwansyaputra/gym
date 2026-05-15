@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'payment.dart';
+import '../widgets/payment_channel_sheet.dart';
 
 class MembershipPackagesPage extends StatefulWidget {
   /// [useWallet] jika true, tombol "Pilih Paket" akan memotong saldo
@@ -602,6 +603,9 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
     );
 
     if (confirmed == true && context.mounted) {
+      final channel = await PaymentChannelSheet.show(context);
+      if (channel == null || !context.mounted) return;
+
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -609,6 +613,7 @@ class _MembershipPackagesPageState extends State<MembershipPackagesPage> {
             paket: paket,
             harga: harga,
             promoId: promoId, // teruskan promo_id agar backend bisa validasi
+            channel: channel,
           ),
         ),
       );

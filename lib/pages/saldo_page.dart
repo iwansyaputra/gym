@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
+import '../services/payment_service.dart';
+import '../widgets/payment_channel_sheet.dart';
 import 'membership_packages_page.dart';
 import 'topup_payment_page.dart';
 
@@ -374,11 +377,17 @@ class _SaldoPageState extends State<SaldoPage>
       return;
     }
 
+    final channel = await PaymentChannelSheet.show(context);
+    if (channel == null || !mounted) return;
+
     // Buka halaman pembayaran top up
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => TopUpPaymentPage(jumlah: nominal!),
+        builder: (_) => TopUpPaymentPage(
+          jumlah: nominal!,
+          channel: channel,
+        ),
       ),
     );
 

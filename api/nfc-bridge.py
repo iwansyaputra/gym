@@ -4,7 +4,7 @@ NFC Bridge Server - ACR122U -> WebSocket -> Backend API
 =======================================================
 Fitur:
   - READ: Baca nfc_id dari HP Android HCE / kartu NFC fisik
-  - CHECK-IN: Langsung kirim ke API https://api.gymku.motalindo.com
+  - CHECK-IN: Langsung kirim ke API http://localhost:3000
   - WRITE: Terima perintah write_card dari browser -> tulis user_id ke kartu NFC
   - BROADCAST: Kirim hasil check-in ke semua browser yang terhubung via WebSocket
 

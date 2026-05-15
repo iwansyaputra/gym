@@ -11,6 +11,7 @@ class PaymentService {
     required String paket,
     required int harga,
     int? promoId,
+    String? channel,
   }) async {
     try {
       final token = await AuthStorage.getToken();
@@ -26,6 +27,9 @@ class PaymentService {
       };
       if (promoId != null) {
         body['promo_id'] = promoId;
+      }
+      if (channel != null) {
+        body['channel'] = channel;
       }
 
       final response = await http.post(
@@ -116,6 +120,7 @@ class PaymentService {
   /// Setelah user bayar, E-Smartlink callback ke backend → saldo otomatis bertambah
   static Future<Map<String, dynamic>> createTopUpPayment({
     required int jumlah,
+    String? channel,
   }) async {
     try {
       final token = await AuthStorage.getToken();
@@ -130,7 +135,7 @@ class PaymentService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({'jumlah': jumlah}),
+        body: jsonEncode({'jumlah': jumlah, if (channel != null) 'channel': channel}),
       );
 
       final data = jsonDecode(response.body);
@@ -172,6 +177,9 @@ class PaymentService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {'success': true, 'data': data['data'], 'message': data['message']};
+      } else if (response.statusCode == 202) {
+        // Gateway masih memproses — Flutter lanjut polling
+        return {'success': false, 'pending': true, 'message': data['message']};
       } else {
         return {
           'success': false,

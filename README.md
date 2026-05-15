@@ -18,11 +18,17 @@ Sistem manajemen gym lengkap berbasis **Flutter (mobile)**, **Admin Web (HTML/JS
 
 ## ✨ Changelog (Mei 2026)
 
+### v2.1 — Multi-Channel Payment & Production Gateway
+1. **Multi-Channel Payment**: Pilihan channel bayar dinamis (VA BCA, BNI, BRI, Mandiri, Permata, CIMB, BNC, Alfamart, Indomaret) melalui *Bottom Sheet* native di dalam aplikasi Flutter.
+2. **Production Gateway**: Beralih sepenuhnya dari environment Sandbox E-Smartlink ke Production.
+3. **Auto-Polling Top Up**: Halaman detail pembayaran mendeteksi keberhasilan transaksi secara otomatis (interval 5 detik) dan langsung mengkreditkan saldo tanpa intervensi admin.
+4. **Redesign Riwayat Transaksi**: UI Riwayat baru berbentuk kartu yang dapat diklik menuju Halaman Detail Pembayaran spesifik beserta instruksi transfer.
+
 ### v2.0 — Production Deployment
 1. **Deploy ke Production**: Admin Web dan Backend API kini live di domain `motalindo.com` menggunakan hosting berbasis Docker.
 2. **NFC Bridge — HTTPS Workaround**: Solusi koneksi `ws://localhost:8765` dari halaman HTTPS menggunakan file `buka-chrome-checkin.bat` (flag `--allow-insecure-localhost`).
 3. **Fallback WebSocket**: `checkin.js` kini mencoba `ws://localhost:8765` → fallback `ws://127.0.0.1:8765` secara otomatis.
-4. **Konfigurasi URL Produksi**: `config.js` dan `nfc-bridge.py` sudah dikonfigurasi penuh ke `api.gymku.motalindo.com`.
+4. **Konfigurasi URL Produksi**: `config.js`, `api_config.dart`, dan `nfc-bridge.py` terkonfigurasi penuh menunjuk ke `api.gymku.motalindo.com`.
 
 ### v1.x — Fitur Sebelumnya
 5. **Rebranding GYMKU**: Nama aplikasi & ikon launcher baru (Dark Blue & Black).
@@ -399,13 +405,15 @@ X-NFC-Secret: nfc-bridge-secret-2024
 
 ## 💳 Payment Gateway (E-Smartlink)
 
-Konfigurasi di `api/.env`:
+Sistem telah terhubung ke API **Production** E-Smartlink dengan parameter dinamis dari sisi Flutter.
+Contoh konfigurasi di `api/.env`:
 ```env
-ESMARTLINK_BASE_URL=https://payment-service-sbx.pakar-digital.com
-ESMARTLINK_USERNAME=api-smartlink-sbx@poltekharber.ac.id
+ESMARTLINK_BASE_URL=https://payment-service.pakar-digital.com
+ESMARTLINK_USERNAME=api-smartlink@poltekharber.ac.id
 ESMARTLINK_PASSWORD=your_password
-ESMARTLINK_CHANNEL=VA_CIMB
 ESMARTLINK_PAYMENT_MODE=CLOSE
+# ESMARTLINK_CHANNEL tidak lagi wajib karena aplikasi Flutter sekarang
+# akan mengirimkan "channel" bayar (seperti VA_BCA, VA_BNI) secara dinamis.
 ```
 
 ---

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../services/payment_service.dart';
 import '../services/api_service.dart';
+import 'payment_detail_page.dart';
 import 'dart:async';
 
 class RiwayatPage extends StatefulWidget {
@@ -343,109 +345,179 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
 
   Widget _buildRiwayatCard(Map<String, dynamic> transaction) {
     final String status = transaction['status'] ?? '';
+    final String jenis = transaction['jenis_transaksi'] ?? 'membership';
+    final String paket = transaction['paket'] ?? '';
+    final String? channel = transaction['channel']?.toString();
+    final String? vaNumber = transaction['virtual_account']?.toString() ??
+        transaction['payment_code']?.toString();
+
+    final String bankName = channel != null
+        ? channel.replaceAll('VA_', '').replaceAll('_', ' ').toUpperCase()
+        : '';
+
+    final String jenisLabel = jenis == 'topup_saldo'
+        ? 'Top Up Saldo'
+        : paket.isNotEmpty
+            ? 'Membership ${paket[0].toUpperCase()}${paket.substring(1)}'
+            : 'Pembayaran';
+
     Color statusColor;
     IconData statusIcon;
+    String statusLabel;
 
     switch (status.toLowerCase()) {
       case 'success':
       case 'paid':
         statusColor = Colors.green;
         statusIcon = Icons.check_circle;
+        statusLabel = 'SUKSES';
         break;
       case 'pending':
         statusColor = Colors.orange;
         statusIcon = Icons.access_time_filled;
+        statusLabel = 'MENUNGGU';
         break;
       case 'failed':
       case 'cancelled':
         statusColor = Colors.red;
         statusIcon = Icons.cancel;
+        statusLabel = 'GAGAL';
         break;
       default:
         statusColor = Colors.grey;
         statusIcon = Icons.info;
+        statusLabel = status.toUpperCase();
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentDetailPage(transaction: transaction),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: status == 'pending'
+                ? Colors.orange.withOpacity(0.35)
+                : Colors.white.withOpacity(0.05),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.18),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
             children: [
+              // Icon jenis transaksi
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withOpacity(0.1),
+                  color: (jenis == 'topup_saldo'
+                          ? Colors.green
+                          : const Color(0xFF2196F3))
+                      .withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.receipt_outlined, color: Color(0xFF2196F3), size: 24),
+                child: Icon(
+                  jenis == 'topup_saldo'
+                      ? Icons.account_balance_wallet
+                      : Icons.card_membership,
+                  color: jenis == 'topup_saldo'
+                      ? Colors.green
+                      : const Color(0xFF2196F3),
+                  size: 22,
+                ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
+
+              // Nama + tanggal
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      transaction['paket'] ?? 'Membership',
+                      jenisLabel,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       _formatDate(transaction['tanggal_transaksi']),
                       style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade500,
-                      ),
+                          fontSize: 12, color: Colors.grey.shade500),
                     ),
+                    // VA preview jika pending
+                    if (status == 'pending' && vaNumber != null) ...
+                      [
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.account_balance,
+                                size: 12, color: Colors.orange),
+                            const SizedBox(width: 4),
+                            Text(
+                              bankName.isNotEmpty
+                                  ? 'VA $bankName'
+                                  : 'Virtual Account',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.orange.shade400),
+                            ),
+                          ],
+                        ),
+                      ],
                   ],
                 ),
               ),
+
+              const SizedBox(width: 10),
+
+              // Nominal + status
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     _formatCurrency(transaction['jumlah']),
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
+                      color: jenis == 'topup_saldo'
+                          ? Colors.green
+                          : const Color(0xFF2196F3),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: statusColor.withOpacity(0.5)),
+                      color: statusColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border:
+                          Border.all(color: statusColor.withOpacity(0.4)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(statusIcon, size: 12, color: statusColor),
-                        const SizedBox(width: 6),
+                        Icon(statusIcon, size: 10, color: statusColor),
+                        const SizedBox(width: 4),
                         Text(
-                          status.toUpperCase(),
+                          statusLabel,
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 9,
                             fontWeight: FontWeight.bold,
                             color: statusColor,
                           ),
@@ -453,29 +525,17 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
                       ],
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  // Arrow indicator → bisa di-tap
+                  Icon(Icons.arrow_forward_ios,
+                      size: 12, color: Colors.grey.shade600),
                 ],
               ),
             ],
           ),
-
-          // Payment method
-          if (transaction['metode_pembayaran'] != null) ...[
-            const SizedBox(height: 16),
-            Divider(color: Colors.white.withOpacity(0.1), height: 1),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(Icons.payment, size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 8),
-                Text(
-                  'Metode: ${transaction['metode_pembayaran']}',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-                ),
-              ],
-            ),
-          ]
-        ],
+        ),
       ),
     );
   }
 }
+

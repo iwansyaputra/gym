@@ -74,7 +74,7 @@ const createPayment = async (req, res) => {
     let transactionStarted = false;
 
     try {
-        const { paket, harga, promo_id } = req.body;
+        const { paket, harga, promo_id, channel } = req.body;
         const userId = req.user.userId;
 
         if (!paket || !harga) {
@@ -224,7 +224,7 @@ const createPayment = async (req, res) => {
                     qty: 1
                 }
             ],
-            channel: [process.env.ESMARTLINK_CHANNEL || 'VA_CIMB'],
+            channel: [channel || process.env.ESMARTLINK_CHANNEL || 'VA_CIMB'],
             type: 'payment-page',
             payment_mode: process.env.ESMARTLINK_PAYMENT_MODE || 'CLOSE',
             expired_time: process.env.ESMARTLINK_EXPIRED_TIME || '',
@@ -398,7 +398,7 @@ const createTopUpPayment = async (req, res) => {
     let transactionStarted = false;
 
     try {
-        const { jumlah } = req.body;
+        const { jumlah, channel } = req.body;
         const userId = req.user.userId;
 
         const nominal = Number(jumlah);
@@ -453,7 +453,7 @@ const createTopUpPayment = async (req, res) => {
                     qty: 1
                 }
             ],
-            channel: [process.env.ESMARTLINK_CHANNEL || 'VA_CIMB'],
+            channel: [channel || process.env.ESMARTLINK_CHANNEL || 'VA_CIMB'],
             type: 'payment-page',
             payment_mode: process.env.ESMARTLINK_PAYMENT_MODE || 'CLOSE',
             expired_time: process.env.ESMARTLINK_EXPIRED_TIME || '',
@@ -599,12 +599,57 @@ const getPaymentHistory = async (req, res) => {
              ORDER BY t.tanggal_transaksi DESC`,
             [userId]
         );
-        res.json({ success: true, data: transactions });
+
+        // Parse bukti_pembayaran dan inquiry VA untuk transaksi pending
+        const enriched = await Promise.all(transactions.map(async (tx) => {
+            let paymentInfo = {
+                payment_code: null,
+                virtual_account: null,
+                channel: null,
+                gateway_transaction_id: null,
+            };
+
+            // Parse bukti_pembayaran (JSON string dari DB)
+            try {
+                if (tx.bukti_pembayaran) {
+                    const bukti = JSON.parse(tx.bukti_pembayaran);
+                    paymentInfo.gateway_transaction_id = bukti.transaction_id || null;
+                    paymentInfo.payment_code = bukti.payment_code || null;
+                    paymentInfo.virtual_account = bukti.virtual_account || null;
+                    paymentInfo.channel = bukti.channel || null;
+                }
+            } catch (_) {}
+
+            // Untuk transaksi pending, coba inquiry ke E-Smartlink untuk dapat VA terbaru
+            if (tx.status === 'pending' && paymentInfo.gateway_transaction_id) {
+                try {
+                    const inquiryRes = await esmartlinkRequest({
+                        method: 'GET',
+                        path: `/api/payment/inquiry-order/${paymentInfo.gateway_transaction_id}`
+                    });
+                    const data = inquiryRes?.data || {};
+                    if (data.payment_code) paymentInfo.payment_code = data.payment_code;
+                    if (data.virtual_account) paymentInfo.virtual_account = data.virtual_account;
+                    if (data.channel) paymentInfo.channel = data.channel;
+                } catch (_) {}
+            }
+
+            return {
+                ...tx,
+                payment_code: paymentInfo.payment_code,
+                virtual_account: paymentInfo.virtual_account,
+                channel: paymentInfo.channel,
+                gateway_transaction_id: paymentInfo.gateway_transaction_id,
+            };
+        }));
+
+        res.json({ success: true, data: enriched });
     } catch (error) {
         console.error('Get payment history error:', error);
         res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server' });
     }
 };
+
 
 const finishPayment = (req, res) => {
     res.send('<h1>Pembayaran Berhasil!</h1><p>Silakan kembali ke aplikasi.</p>');
@@ -672,9 +717,20 @@ const confirmTopUpPayment = async (req, res) => {
             console.warn('[TopUp Confirm] Inquiry gagal, lanjut berdasarkan WebView callback:', inquiryErr.message);
         }
 
-        const localStatus = mapGatewayStatusToLocal(gatewayStatus || 'SUCCESS');
 
-        // 4. Jika E-Smartlink belum konfirmasi, tolak
+        const localStatus = mapGatewayStatusToLocal(gatewayStatus);
+
+        // 4a. Masih pending — jangan kredit, return 202 agar Flutter lanjut polling
+        if (gatewayStatus !== null && localStatus === 'pending') {
+            console.log(`[TopUp Confirm] order=${orderId} masih PENDING, belum kredit`);
+            return res.status(202).json({
+                success: false,
+                pending: true,
+                message: 'Pembayaran masih diproses oleh gateway'
+            });
+        }
+
+        // 4b. Gagal di gateway
         if (localStatus === 'failed') {
             await connection.query(
                 'UPDATE transactions SET status = ? WHERE order_id = ?',
@@ -682,9 +738,12 @@ const confirmTopUpPayment = async (req, res) => {
             );
             return res.status(400).json({
                 success: false,
-                message: 'Pembayaran belum dikonfirmasi oleh gateway'
+                message: 'Pembayaran ditolak oleh gateway'
             });
         }
+
+        // 4c. gatewayStatus null (inquiry gagal) atau SUCCESS → lanjut kredit
+        // (null = trust WebView redirect / polling yang sudah confirmed)
 
         // 5. Kredit saldo wallet (dalam transaction DB)
         const jumlah = Number(transaction.jumlah);

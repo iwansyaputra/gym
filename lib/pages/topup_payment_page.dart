@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -5,12 +6,15 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../services/payment_service.dart';
 
 /// Halaman Top Up Saldo via E-Smartlink (Virtual Account / QRIS)
-/// Alur: langsung buka WebView → deteksi URL sukses → panggil confirmTopUp
-/// ke backend → saldo dikreditkan tanpa bergantung webhook/callback.
+/// Alur:
+///   - Android Native : WebView embedded, deteksi redirect URL sukses → auto kredit
+///   - Flutter Web    : Auto-launch browser tab + polling tiap 5 detik → auto kredit
+/// Tidak ada popup/dialog — langsung kembali ke halaman sebelumnya saat sukses.
 class TopUpPaymentPage extends StatefulWidget {
   final int jumlah;
+  final String channel;
 
-  const TopUpPaymentPage({super.key, required this.jumlah});
+  const TopUpPaymentPage({super.key, required this.jumlah, required this.channel});
 
   @override
   State<TopUpPaymentPage> createState() => _TopUpPaymentPageState();
@@ -20,9 +24,14 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
   bool _isLoading = true;
   String? _paymentUrl;
   String? _orderId;
-  bool _isConfirming = false;
   bool _isResultHandled = false;
+  bool _isConfirming = false;
   WebViewController? _webViewController;
+
+  // Auto-polling (Flutter Web — tidak ada WebView)
+  Timer? _pollTimer;
+  int _pollCount = 0;
+  static const int _maxPollCount = 120; // max 10 menit
 
   @override
   void initState() {
@@ -30,10 +39,19 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
     _initializeTopUpPayment();
   }
 
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  // ─── Inisialisasi: buat order dan langsung buka halaman payment ─────────────
   Future<void> _initializeTopUpPayment() async {
     try {
-      final result =
-          await PaymentService.createTopUpPayment(jumlah: widget.jumlah);
+      final result = await PaymentService.createTopUpPayment(
+        jumlah: widget.jumlah,
+        channel: widget.channel,
+      );
 
       if (result['success'] == true) {
         final paymentData = result['data'] as Map<String, dynamic>;
@@ -47,17 +65,18 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
         }
 
         if (!kIsWeb) {
+          // Android/iOS: tampilkan WebView embedded
           _webViewController = WebViewController()
             ..setJavaScriptMode(JavaScriptMode.unrestricted)
             ..setNavigationDelegate(
               NavigationDelegate(
-                onPageStarted: (url) => print('[TopUp] Load: $url'),
+                onPageStarted: (url) => debugPrint('[TopUp] Load: $url'),
                 onPageFinished: (url) {
-                  print('[TopUp] Done: $url');
+                  debugPrint('[TopUp] Done: $url');
                   _onUrlChanged(url);
                 },
                 onWebResourceError: (err) =>
-                    print('[TopUp] Error: ${err.description}'),
+                    debugPrint('[TopUp] Error: ${err.description}'),
               ),
             )
             ..loadRequest(Uri.parse(paymentUrl));
@@ -68,6 +87,12 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
           _orderId = orderId;
           _isLoading = false;
         });
+
+        if (kIsWeb && orderId != null) {
+          // Flutter Web: langsung buka browser tab dan mulai polling
+          await launchUrl(Uri.parse(paymentUrl), mode: LaunchMode.externalApplication);
+          _startPolling();
+        }
       } else {
         _showError(result['message'] ?? 'Gagal membuat pembayaran');
       }
@@ -76,7 +101,7 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
     }
   }
 
-  /// Deteksi URL yang mengindikasikan pembayaran sukses lalu konfirmasi ke backend
+  // ─── Deteksi URL sukses/gagal dari WebView (Android) ────────────────────────
   void _onUrlChanged(String url) {
     if (_isResultHandled || _isConfirming) return;
 
@@ -84,137 +109,84 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
     final isSuccess = url.contains('/payment/finish') ||
         url.contains('status=SUCCESS') ||
         url.contains('payment_status=success') ||
+        url.contains('api.gymku.motalindo.com/api/payment/finish') ||
         (uri?.queryParameters['status']?.toUpperCase() == 'SUCCESS');
 
     final isFailed = url.contains('/payment/error') ||
         url.contains('status=FAILED') ||
-        url.contains('payment_status=failed');
+        url.contains('payment_status=failed') ||
+        url.contains('api.gymku.motalindo.com/api/payment/error');
 
     if (isSuccess) {
       _isResultHandled = true;
-      _confirmAndCreditSaldo();
+      _confirmAndCredit();
     } else if (isFailed) {
       _isResultHandled = true;
-      _handlePaymentFailed();
+      _onPaymentFailed();
     }
   }
 
-  /// Panggil backend untuk kredit saldo setelah WebView sukses
-  Future<void> _confirmAndCreditSaldo() async {
-    if (_orderId == null) {
-      _showError('Order ID tidak ditemukan.');
-      return;
-    }
+  // ─── Polling tiap 5 detik (Flutter Web) ─────────────────────────────────────
+  void _startPolling() {
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (!mounted || _isResultHandled || _pollCount >= _maxPollCount) {
+        _pollTimer?.cancel();
+        return;
+      }
+      _pollCount++;
+      await _pollOnce();
+    });
+  }
 
-    setState(() => _isConfirming = true);
+  Future<void> _pollOnce() async {
+    if (_orderId == null || _isResultHandled || _isConfirming) return;
 
-    // Tunggu sebentar agar E-Smartlink selesai memproses dari sisi mereka
-    await Future.delayed(const Duration(seconds: 2));
-
-    final result =
-        await PaymentService.confirmTopUpPayment(orderId: _orderId!);
-
-    setState(() => _isConfirming = false);
-
-    if (!mounted) return;
+    final result = await PaymentService.confirmTopUpPayment(orderId: _orderId!);
 
     if (result['success'] == true) {
-      final saldoBaru = result['data']?['saldo_baru'];
-      _showSuccessDialog(saldoBaru);
+      _isResultHandled = true;
+      _pollTimer?.cancel();
+      if (mounted) _onPaymentSuccess();
+    } else if (result['pending'] == true) {
+      debugPrint('[TopUp Poll] #$_pollCount masih pending...');
+    }
+    // Error lain: lanjut polling sampai timeout
+  }
+
+  // ─── Konfirmasi ke backend (dari WebView Android) ────────────────────────────
+  Future<void> _confirmAndCredit() async {
+    if (_orderId == null) return;
+
+    setState(() => _isConfirming = true);
+    await Future.delayed(const Duration(seconds: 2)); // beri jeda E-Smartlink proses
+
+    final result = await PaymentService.confirmTopUpPayment(orderId: _orderId!);
+
+    if (!mounted) return;
+    setState(() => _isConfirming = false);
+
+    if (result['success'] == true || result['pending'] == true) {
+      _onPaymentSuccess();
     } else {
-      // Jika gagal konfirmasi, tetap tampilkan dialog sukses dengan pesan
-      // bahwa saldo mungkin sedang diproses (bisa karena inquiry masih pending)
-      _showSuccessDialog(null, pending: true);
+      _onPaymentFailed();
     }
   }
 
-  void _showSuccessDialog(dynamic saldoBaru, {bool pending = false}) {
+  // ─── Navigasi kembali langsung (tanpa popup) ─────────────────────────────────
+  void _onPaymentSuccess() {
     if (!mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          pending ? '✅ Pembayaran Diterima' : '🎉 Top Up Berhasil!',
-          style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              pending ? Icons.check_circle_outline : Icons.check_circle,
-              color: pending ? Colors.amber : Colors.green,
-              size: 56,
-            ),
-            const SizedBox(height: 14),
-            Text(
-              pending
-                  ? 'Pembayaran Anda sebesar ${_formatRupiah(widget.jumlah)} telah diterima.\nSaldo akan masuk dalam beberapa saat.'
-                  : 'Saldo sebesar ${_formatRupiah(widget.jumlah)} berhasil ditambahkan!${saldoBaru != null ? '\n\nSaldo sekarang: ${_formatRupiah((saldoBaru as num).toInt())}' : ''}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey, height: 1.5),
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Tutup dialog
-              Navigator.of(context).pop(true); // Kembali ke SaldoPage dengan result=true
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Lihat Saldo'),
-          ),
-        ],
-      ),
-    );
+    Navigator.of(context).pop(true); // parent akan refresh saldo + tampil SnackBar
   }
 
-  void _handlePaymentFailed() {
+  void _onPaymentFailed() {
     if (!mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Pembayaran Gagal',
-          style:
-              TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'Transaksi tidak berhasil. Silakan coba lagi.',
-          style: TextStyle(color: Colors.grey),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(false);
-            },
-            child:
-                const Text('Tutup', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+    Navigator.of(context).pop(false);
   }
 
+  // ─── Error saat membuat order (sebelum VA terbuka) ───────────────────────────
   void _showError(String message) {
     setState(() => _isLoading = false);
     if (!mounted) return;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -222,8 +194,7 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Terjadi Kesalahan',
-          style:
-              TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(message,
             style: const TextStyle(color: Colors.grey, height: 1.5)),
@@ -243,9 +214,11 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
   }
 
   String _formatRupiah(int amount) {
-    return 'Rp ${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+    return 'Rp ${amount.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
   }
 
+  // ─── Build ───────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -253,47 +226,36 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
       appBar: AppBar(
         title: Text(
           'Top Up ${_formatRupiah(widget.jumlah)}',
-          style: const TextStyle(
-              fontWeight: FontWeight.bold, letterSpacing: 1.1),
+          style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1),
         ),
         backgroundColor: const Color(0xFF0A0A0A),
         foregroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
+        // Cegah user kembali saat proses pembayaran berjalan (belum bayar)
+        automaticallyImplyLeading: !_isLoading,
+        leading: _isLoading
+            ? const SizedBox.shrink()
+            : IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(false),
+                tooltip: 'Batalkan',
+              ),
       ),
       body: Stack(
         children: [
-          // WebView atau loading awal
+          // ── Konten utama ──
           if (_isLoading)
-            const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: Color(0xFF2196F3)),
-                  SizedBox(height: 16),
-                  Text(
-                    'Menyiapkan halaman pembayaran...',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            )
-          else if (_paymentUrl == null)
-            const Center(
-              child: Text(
-                'Gagal memuat halaman pembayaran',
-                style: TextStyle(color: Colors.grey),
-              ),
-            )
+            _buildLoadingScreen()
           else if (kIsWeb)
-            _buildWebFallback()
+            _buildWebWaitingScreen()
           else if (_webViewController != null)
             WebViewWidget(controller: _webViewController!),
 
-          // Overlay konfirmasi saldo (setelah WebView sukses)
+          // ── Overlay konfirmasi (saat WebView sudah detect sukses, Android) ──
           if (_isConfirming)
             Container(
-              color: Colors.black.withOpacity(0.75),
+              color: Colors.black.withOpacity(0.8),
               child: const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -301,13 +263,8 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
                     CircularProgressIndicator(color: Color(0xFF2196F3)),
                     SizedBox(height: 20),
                     Text(
-                      'Mengkonfirmasi pembayaran\ndan mengkredit saldo...',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        height: 1.5,
-                      ),
+                      'Mengkredit saldo...',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ],
                 ),
@@ -318,58 +275,121 @@ class _TopUpPaymentPageState extends State<TopUpPaymentPage> {
     );
   }
 
-  Widget _buildWebFallback() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
+  // ── Loading awal saat membuat order ke backend ────────────────────────────────
+  Widget _buildLoadingScreen() {
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.open_in_browser,
-              size: 64, color: Color(0xFF1976D2)),
-          const SizedBox(height: 16),
-          const Text(
-            'Buka halaman pembayaran di browser.\nSetelah selesai, kembali ke aplikasi.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, height: 1.5),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () async {
-              final uri = Uri.parse(_paymentUrl!);
-              await launchUrl(uri, mode: LaunchMode.platformDefault);
-            },
-            icon: const Icon(Icons.launch),
-            label: const Text('Buka Halaman Pembayaran'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1976D2),
-              foregroundColor: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Tombol konfirmasi manual jika user sudah bayar di browser
-          OutlinedButton.icon(
-            onPressed: () {
-              if (!_isResultHandled) {
-                _isResultHandled = true;
-                _confirmAndCreditSaldo();
-              }
-            },
-            icon: const Icon(Icons.check),
-            label: const Text('Saya Sudah Bayar'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.green,
-              side: const BorderSide(color: Colors.green),
-              padding:
-                  const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
+          CircularProgressIndicator(color: Color(0xFF2196F3)),
+          SizedBox(height: 20),
+          Text(
+            'Menyiapkan Virtual Account...',
+            style: TextStyle(color: Colors.grey, fontSize: 15),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Layar tunggu untuk Flutter Web (setelah browser tab terbuka) ─────────────
+  Widget _buildWebWaitingScreen() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon wallet animasi
+            Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1565C0).withOpacity(0.15),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF2196F3).withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet_rounded,
+                color: Color(0xFF2196F3),
+                size: 44,
+              ),
+            ),
+            const SizedBox(height: 28),
+            const Text(
+              'Menunggu Pembayaran',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Halaman Virtual Account sudah dibuka di browser.\nSelesaikan pembayaran — saldo akan otomatis\nmasuk tanpa perlu menekan tombol apapun.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 14,
+                height: 1.6,
+              ),
+            ),
+            const SizedBox(height: 36),
+
+            // Indikator polling
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF2196F3),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Memeriksa status pembayaran...',
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            // Tombol buka ulang jika browser tertutup tidak sengaja
+            TextButton.icon(
+              onPressed: _paymentUrl != null
+                  ? () => launchUrl(
+                        Uri.parse(_paymentUrl!),
+                        mode: LaunchMode.externalApplication,
+                      )
+                  : null,
+              icon: const Icon(Icons.open_in_new, size: 16),
+              label: const Text('Buka Ulang Halaman Bayar'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey.shade600,
+                textStyle: const TextStyle(fontSize: 13),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
