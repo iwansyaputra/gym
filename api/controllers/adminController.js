@@ -489,7 +489,7 @@ const getAllCheckIns = async (req, res) => {
         const params = [];
 
         if (date) {
-            query += ' AND DATE(CONVERT_TZ(c.check_in_time, \'+00:00\', \'+07:00\')) = ?';
+            query += ' AND DATE(c.check_in_time) = ?';
             params.push(date);
         }
 
