@@ -189,7 +189,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateScannerStatus('scanning', 'Memproses...');
 
         try {
-            // Step 1: Lookup member (verifikasi data + cek membership)
+            // ── Kasus 1: hasil check-in sudah ada dari Python bridge (preCheckinResult) ──
+            // Bridge sudah POST ke API → jangan hit API lagi (cegah double check-in!)
+            if (preCheckinResult) {
+                if (preCheckinResult.success) {
+                    const memberName = preCheckinResult.member?.name || nfcId;
+                    updateScannerStatus('success', `✅ ${memberName} berhasil check-in!`);
+                    currentMember = preCheckinResult.member || { name: nfcId };
+                    showSuccessModal();
+                    await loadTodayCheckins();
+                    await loadCheckinHistory();
+                    setTimeout(() => {
+                        closeMemberInfo();
+                        updateScannerStatus('scanning', 'Siap — Tempelkan kartu berikutnya');
+                    }, 3000);
+                } else {
+                    // Membership expired atau ditolak
+                    const msg = preCheckinResult.message || 'Check-in gagal';
+                    updateScannerStatus('error', msg);
+                    if (preCheckinResult.member) {
+                        showExpiredModal(preCheckinResult.member);
+                    } else {
+                        showToast(msg, 'error');
+                    }
+                }
+                return;
+            }
+
+            // ── Kasus 2: Input manual (tanpa bridge) — lookup dulu lalu check-in ──
             const lookupResp = await api.lookupMember(nfcId);
 
             if (!lookupResp.success || !lookupResp.data) {
@@ -210,20 +237,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Step 2: Auto check-in langsung
+            // Auto check-in langsung
             updateScannerStatus('scanning', `${currentMember.name} ditemukan — Check-in...`);
-            
-            // Gunakan hasil dari Python nfc-bridge jika ada, hindari hit API dua kali
-            const checkinResp = preCheckinResult ? preCheckinResult : await api.checkInNFC(nfcId);
+            const checkinResp = await api.checkInNFC(nfcId);
 
             if (checkinResp.success) {
                 updateScannerStatus('success', `✅ ${currentMember.name} berhasil check-in!`);
-                displayMemberInfo(currentMember, false); // tampilkan info, nonaktifkan tombol konfirmasi
+                displayMemberInfo(currentMember, false);
                 showSuccessModal();
                 await loadTodayCheckins();
                 await loadCheckinHistory();
 
-                // Reset status setelah 3 detik siap untuk scan berikutnya
                 setTimeout(() => {
                     closeMemberInfo();
                     updateScannerStatus('scanning', 'Siap — Tempelkan kartu berikutnya');
@@ -235,8 +259,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error('Error auto check-in:', error);
-            // Hanya tampilkan error jaringan/timeout di sini
-            // Respons 4xx dari server (seperti 429) sudah ditangani di blok else di atas
             updateScannerStatus('error', 'Gagal terhubung ke server');
             showToast(error.message || 'Gagal terhubung ke server', 'error');
         } finally {
@@ -452,7 +474,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadCheckinHistory() {
         try {
             const dateFilter = document.getElementById('dateFilter');
-            const date = dateFilter ? dateFilter.value : new Date().toISOString().split('T')[0];
+            // Ambil tanggal dari input, pastikan format YYYY-MM-DD (timezone lokal browser)
+            let date;
+            if (dateFilter && dateFilter.value) {
+                date = dateFilter.value; // sudah format YYYY-MM-DD dari input type=date
+            } else {
+                // Gunakan tanggal lokal browser (bukan UTC)
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = String(now.getMonth() + 1).padStart(2, '0');
+                const d = String(now.getDate()).padStart(2, '0');
+                date = `${y}-${m}-${d}`;
+                if (dateFilter) dateFilter.value = date;
+            }
 
             const response = await api.getAllCheckIns({ date });
             const tbody    = document.getElementById('checkinTableBody');
@@ -468,7 +502,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <td>${checkin.user_id   || '-'}</td>
                             <td>${checkin.nfc_id    || '-'}</td>
                             <td><span class="badge ${status.class}">${status.label}</span></td>
-                            <td><span class="badge badge-primary">${checkin.method || 'NFC'}</span></td>
+                            <td><span class="badge badge-primary">${checkin.check_in_method || 'NFC'}</span></td>
                         </tr>
                     `;
                 }).join('');

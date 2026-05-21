@@ -119,13 +119,13 @@ class _PaymentPageState extends State<PaymentPage> {
     final isSuccess = url.contains('/payment/finish') ||
         url.contains('status=SUCCESS') ||
         url.contains('payment_status=success') ||
-        url.contains('localhost:3000/api/payment/finish') ||
+        url.contains('gymapi-zeta.vercel.app/api/payment/finish') ||
         (uri?.queryParameters['status']?.toUpperCase() == 'SUCCESS');
 
     final isFailed = url.contains('/payment/error') ||
         url.contains('status=FAILED') ||
         url.contains('payment_status=failed') ||
-        url.contains('localhost:3000/api/payment/error');
+        url.contains('gymapi-zeta.vercel.app/api/payment/error');
 
     final isPending = url.contains('/payment/pending') ||
         url.contains('status=PENDING');
