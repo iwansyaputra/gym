@@ -102,13 +102,19 @@ function formatDate(dateString) {
 // Helper function to format datetime
 function formatDateTime(dateString) {
     if (!dateString) return '-';
-    const date = new Date(dateString);
+    // Tambahkan 'Z' hanya jika string belum punya info timezone
+    // Data dari backend sudah dalam WIB (via CONVERT_TZ di server),
+    // sehingga kita tampilkan apa adanya tanpa konversi browser (timeZone: 'UTC')
+    const normalized = dateString.replace(' ', 'T');
+    const hasTimezone = normalized.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(normalized);
+    const date = hasTimezone ? new Date(normalized) : new Date(normalized + 'Z');
     return new Intl.DateTimeFormat('id-ID', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'UTC'  // Tampilkan apa adanya, backend sudah konversi ke WIB
     }).format(date);
 }
 
