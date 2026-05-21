@@ -175,7 +175,7 @@ const checkInNFC = async (req, res) => {
                 membership_expiry: member.membership_expiry,
                 total_checkins: member.total_checkins,
             },
-            check_in_time: moment().tz('Asia/Jakarta').format('YYYY-MM-DD HH:mm:ss'),
+            check_in_time: moment().utcOffset('+0700').format('YYYY-MM-DD HH:mm:ss'),
         });
 
     } catch (error) {
