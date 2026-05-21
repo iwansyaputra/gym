@@ -6,18 +6,18 @@ class ApiConfig {
   // URL dasar server API yang digunakan untuk semua request
 
   // 🌐 MODE PRODUCTION — API sudah di-hosting di:
-  static const String _productionUrl = 'https://api.gymku.motalindo.com';
+  // static const String _productionUrl = 'https://api.gymku.motalindo.com';
 
   // 🏠 MODE LOCALHOST — Untuk development lokal
   // Gunakan localhost untuk browser (Flutter Web)
   // Gunakan 10.0.2.2 HANYA untuk Android Emulator
   // Gunakan IP lokal (192.168.x.x) untuk HP fisik via WiFi
-  // static const String _localUrl = 'http://localhost:3000';
+  static const String _localUrl = 'http://localhost:3000';
   // static const String _localUrl = 'http://10.0.2.2:3000'; // Android Emulator
   // static const String _localUrl = 'http://192.168.141.85:3000'; // HP fisik
 
   // 🎯 Base URL — Mengarah ke server production
-  static String get baseUrl => '$_productionUrl/api';
+  static String get baseUrl => '$_localUrl/api';
 
   // ==================== AUTH ENDPOINTS ====================
   /// Endpoint untuk register user baru

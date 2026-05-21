@@ -32,7 +32,7 @@ except ImportError:
 # ──────────────────────────────────────────────────────────────────────────────
 # KONFIGURASI API
 # ──────────────────────────────────────────────────────────────────────────────
-API_BASE_URL = "https://api.gymku.motalindo.com/api"
+API_BASE_URL = "http://localhost:3000/api"
 NFC_SECRET_KEY = "nfc-bridge-secret-2024"  # Harus sama dengan backend .env NFC_SECRET_KEY
 CHECKIN_ENDPOINT = f"{API_BASE_URL}/check-in/nfc"
 

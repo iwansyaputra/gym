@@ -1,10 +1,10 @@
 // API Configuration
 const API_CONFIG = {
     // 🌐 Production API URL — langsung ke server hosting
-    BASE_URL: 'https://api.gymku.motalindo.com/api',
+    // BASE_URL: 'https://api.gymku.motalindo.com/api',
 
     // 🏠 Localhost — untuk development lokal
-    // BASE_URL: 'http://localhost:3000/api',
+    BASE_URL: 'http://localhost:3000/api',
 
     // Endpoints
     ENDPOINTS: {

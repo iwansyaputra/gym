@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymKu — Sistem Manajemen Gym Terpadu</title>
+  <meta name="description" content="GymKu adalah sistem manajemen gym terpadu berbasis Flutter, Admin Web, dan Backend API dengan integrasi NFC check-in menggunakan ACR122U dan HCE Android." />
+  <link rel="icon" href="img/playstore_icon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-brand">
+        <img src="img/playstore_icon.png" alt="GymKu Logo" class="nav-logo" />
+        <span>GymKu</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#fitur">Fitur</a></li>
+        <li><a href="#teknologi">Teknologi</a></li>
+        <li><a href="#nfc">NFC</a></li>
+        <li><a href="#payment">Payment</a></li>
+        <li><a href="#admin">Admin</a></li>
+        <li><a href="../admin_web/" target="_blank" class="btn-nav">Coba Demo</a></li>
+      </ul>
+      <button class="hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-bg-orb orb1"></div>
+    <div class="hero-bg-orb orb2"></div>
+    <div class="hero-bg-orb orb3"></div>
+    <div class="hero-content">
+      <div class="hero-text">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          Sistem Manajemen Gym Generasi Berikutnya
+        </div>
+        <h1 class="hero-title">
+          Kelola Gym Anda<br />
+          <span class="gradient-text">Lebih Cerdas</span><br />
+          dengan Teknologi IoT
+        </h1>
+        <p class="hero-desc">
+          GymKu menggabungkan <strong>Flutter Mobile</strong>, <strong>Admin Web</strong>, dan <strong>Backend API</strong> dengan integrasi <strong>NFC check-in</strong> real-time. Satu ekosistem lengkap untuk gym modern Anda.
+        </p>
+        <div class="hero-cta">
+          <a href="../admin_web/" target="_blank" id="btn-demo" class="btn-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Buka Admin Demo
+          </a>
+          <a href="#fitur" id="btn-fitur" class="btn-secondary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+            Lihat Fitur
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-num">3</span>
+            <span class="stat-label">Platform</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-num">9+</span>
+            <span class="stat-label">Channel Bayar</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-num">NFC</span>
+            <span class="stat-label">Check-in IoT</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="phone-glow"></div>
+        <img src="img/gymku_app_mockup.png?v=2" alt="GymKu Mobile App" class="hero-phone-img" />
+      </div>
+    </div>
+    <div class="hero-scroll-hint">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+  </section>
+
+  <!-- PLATFORM BADGES -->
+  <section id="platforms" class="section-platforms">
+    <div class="container">
+      <p class="platforms-label">Dibangun dengan teknologi terpercaya</p>
+      <div class="platforms-row">
+        <div class="platform-badge"><span class="tech-icon">🟦</span> Flutter</div>
+        <div class="platform-badge"><span class="tech-icon">🟩</span> Node.js</div>
+        <div class="platform-badge"><span class="tech-icon">🐬</span> MySQL</div>
+        <div class="platform-badge"><span class="tech-icon">🐳</span> Docker</div>
+        <div class="platform-badge"><span class="tech-icon">📡</span> NFC / HCE</div>
+        <div class="platform-badge"><span class="tech-icon">💳</span> E-Smartlink</div>
+        <div class="platform-badge"><span class="tech-icon">🐍</span> Python</div>
+        <div class="platform-badge"><span class="tech-icon">🌐</span> WebSocket</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FITUR UTAMA -->
+  <section id="fitur" class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Fitur Utama</span>
+        <h2 class="section-title">Semua yang Anda Butuhkan<br /><span class="gradient-text">dalam Satu Sistem</span></h2>
+        <p class="section-desc">Ekosistem lengkap untuk manajemen gym modern — dari check-in anggota hingga laporan analitik.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card card-glow" id="feat-nfc">
+          <div class="feature-icon icon-blue">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <h3>NFC Check-in IoT</h3>
+          <p>Check-in anggota real-time menggunakan ACR122U USB Reader & HCE Android. Dilengkapi proteksi double check-in 3 lapis.</p>
+          <div class="feature-tag">ACR122U • HCE • WebSocket</div>
+        </div>
+        <div class="feature-card card-glow" id="feat-mobile">
+          <div class="feature-icon icon-cyan">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          </div>
+          <h3>Mobile App Flutter</h3>
+          <p>Aplikasi Android lengkap: login OTP email, dashboard membership, NFC HCE virtual card, riwayat transaksi, dan dompet digital.</p>
+          <div class="feature-tag">Flutter • Android • OTP</div>
+        </div>
+        <div class="feature-card card-glow" id="feat-payment">
+          <div class="feature-icon icon-purple">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          <h3>Multi-Channel Payment</h3>
+          <p>Integrasi E-Smartlink Production: VA BCA, BNI, BRI, Mandiri, Permata, CIMB, BNC, Alfamart, Indomaret. Auto-polling status pembayaran.</p>
+          <div class="feature-tag">E-Smartlink • 9 Channel • Auto-Poll</div>
+        </div>
+        <div class="feature-card card-glow" id="feat-wallet">
+          <div class="feature-icon icon-green">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          </div>
+          <h3>Sistem Dompet Digital</h3>
+          <p>Kelola saldo member (wallet). Admin bisa top-up langsung, member bisa lihat riwayat transaksi saldo secara real-time.</p>
+          <div class="feature-tag">Wallet • Top-up • Riwayat</div>
+        </div>
+        <div class="feature-card card-glow" id="feat-report">
+          <div class="feature-icon icon-orange">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+          <h3>Laporan & K-Means Clustering</h3>
+          <p>Dashboard analitik harian: total member, check-in, revenue. Segmentasi aktivitas member dengan algoritma K-Means. Export Excel (.xlsx).</p>
+          <div class="feature-tag">Analytics • K-Means • Export Excel</div>
+        </div>
+        <div class="feature-card card-glow" id="feat-admin">
+          <div class="feature-icon icon-blue">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3>Admin Web Dashboard</h3>
+          <p>Dashboard web HTML/JS lengkap: manajemen member, paket membership, promo & diskon, top-up saldo, dan riwayat transaksi.</p>
+          <div class="feature-tag">HTML/JS • CRUD • Real-time</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NFC SECTION -->
+  <section id="nfc" class="section section-dark-alt">
+    <div class="container">
+      <div class="split-layout">
+        <div class="split-visual">
+          <div class="desktop-visual-wrap">
+            <div class="desktop-glow-ring"></div>
+            <img src="img/gymku_nfc_hardware.png?v=2" alt="NFC Check-in Dashboard" class="desktop-img" />
+          </div>
+          <div class="nfc-flow">
+            <div class="flow-step">
+              <div class="flow-dot dot-active"></div>
+              <div class="flow-line"></div>
+              <span>HP Android / Kartu NFC</span>
+            </div>
+            <div class="flow-step">
+              <div class="flow-dot"></div>
+              <div class="flow-line"></div>
+              <span>ACR122U USB Reader</span>
+            </div>
+            <div class="flow-step">
+              <div class="flow-dot"></div>
+              <div class="flow-line"></div>
+              <span>nfc-bridge.py (WebSocket)</span>
+            </div>
+            <div class="flow-step">
+              <div class="flow-dot"></div>
+              <div class="flow-line"></div>
+              <span>Admin Web Browser</span>
+            </div>
+            <div class="flow-step">
+              <div class="flow-dot dot-end"></div>
+              <div class="flow-line-none"></div>
+              <span>API → Database MySQL</span>
+            </div>
+          </div>
+        </div>
+        <div class="split-content">
+          <span class="section-tag">Teknologi NFC IoT</span>
+          <h2 class="section-title">Check-in Tanpa<br /><span class="gradient-text">Antrian & Kerumitan</span></h2>
+          <p class="section-desc-left">Sistem NFC GymKu mendukung dua mode: <strong>ACR122U USB Reader</strong> untuk meja admin dan <strong>HCE Android</strong> agar HP member berfungsi sebagai kartu virtual — tanpa cetak kartu fisik!</p>
+          <div class="feature-list">
+            <div class="feat-li" id="feat-li-1">
+              <div class="feat-li-icon">🛡️</div>
+              <div>
+                <strong>Proteksi Double Check-in 3 Lapis</strong>
+                <p>Bridge cooldown 5 detik, Browser debounce 10 detik, Atomic SQL INSERT WHERE NOT EXISTS.</p>
+              </div>
+            </div>
+            <div class="feat-li" id="feat-li-2">
+              <div class="feat-li-icon">📱</div>
+              <div>
+                <strong>HP sebagai Kartu Virtual (HCE)</strong>
+                <p>Flutter app mengimplementasi Host Card Emulation — tap HP ke reader, langsung check-in!</p>
+              </div>
+            </div>
+            <div class="feat-li" id="feat-li-3">
+              <div class="feat-li-icon">🔒</div>
+              <div>
+                <strong>Proteksi Berbasis Langganan</strong>
+                <p>Check-in otomatis diblokir jika membership member sudah expired.</p>
+              </div>
+            </div>
+            <div class="feat-li" id="feat-li-4">
+              <div class="feat-li-icon">💳</div>
+              <div>
+                <strong>Kartu Fisik NFC</strong>
+                <p>Dukung NTAG213 & Mifare Classic 1K. Admin bisa program kartu fisik langsung dari app.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN DASHBOARD SECTION -->
+  <section id="admin" class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Admin Web</span>
+        <h2 class="section-title">Dashboard Kontrol<br /><span class="gradient-text">Satu Layar, Semua Data</span></h2>
+        <p class="section-desc">Panel admin berbasis web yang powerful — kelola member, monitor check-in real-time, analitik laporan, dan semua operasional gym dari satu tempat.</p>
+        <div class="dashboard-badges-row">
+          <div class="db-badge-item">📊 Statistik Harian</div>
+          <div class="db-badge-item">📡 NFC Real-time</div>
+          <div class="db-badge-item">📈 K-Means Analytics</div>
+          <div class="db-badge-item">📥 Export Excel</div>
+        </div>
+      </div>
+      <div class="desktop-preview-wrap">
+        <div class="dashboard-glow"></div>
+        <img src="img/gymku_admin_dashboard.png?v=2" alt="GymKu Admin Dashboard" class="desktop-img admin-img" />
+      </div>
+      <div class="admin-pages-grid">
+        <div class="admin-page-item" id="ap-1"><span class="ap-icon">🏠</span> Dashboard</div>
+        <div class="admin-page-item" id="ap-2"><span class="ap-icon">👥</span> Manajemen Member</div>
+        <div class="admin-page-item" id="ap-3"><span class="ap-icon">📡</span> NFC Check-in</div>
+        <div class="admin-page-item" id="ap-4"><span class="ap-icon">💰</span> Top-up Saldo</div>
+        <div class="admin-page-item" id="ap-5"><span class="ap-icon">📦</span> Paket Membership</div>
+        <div class="admin-page-item" id="ap-6"><span class="ap-icon">🎁</span> Promo & Diskon</div>
+        <div class="admin-page-item" id="ap-7"><span class="ap-icon">💳</span> Transaksi</div>
+        <div class="admin-page-item" id="ap-8"><span class="ap-icon">📊</span> Laporan & Analitik</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAYMENT SECTION -->
+  <section id="payment" class="section section-dark-alt">
+    <div class="container">
+      <div class="split-layout reverse">
+        <div class="split-content">
+          <span class="section-tag">Payment Gateway</span>
+          <h2 class="section-title">Bayar Membership<br /><span class="gradient-text">Semua Channel Tersedia</span></h2>
+          <p class="section-desc-left">Integrasi E-Smartlink Production memungkinkan member membayar melalui 9+ metode pembayaran langsung dari aplikasi. Auto-polling otomatis mendeteksi keberhasilan transaksi tanpa perlu refresh manual.</p>
+          <div class="payment-channels">
+            <div class="channel-row">
+              <div class="channel-item" id="ch-bca">🏦 VA BCA</div>
+              <div class="channel-item" id="ch-bni">🏦 VA BNI</div>
+              <div class="channel-item" id="ch-bri">🏦 VA BRI</div>
+            </div>
+            <div class="channel-row">
+              <div class="channel-item" id="ch-mandiri">🏦 VA Mandiri</div>
+              <div class="channel-item" id="ch-permata">🏦 VA Permata</div>
+              <div class="channel-item" id="ch-cimb">🏦 CIMB</div>
+            </div>
+            <div class="channel-row">
+              <div class="channel-item" id="ch-bnc">🏦 BNC</div>
+              <div class="channel-item" id="ch-alfa">🛒 Alfamart</div>
+              <div class="channel-item" id="ch-indo">🛒 Indomaret</div>
+            </div>
+          </div>
+          <div class="autopoll-badge" id="autopoll-badge">
+            <span class="pulse-dot"></span>
+            Auto-Polling setiap 5 detik — saldo langsung dikreditkan otomatis
+          </div>
+        </div>
+        <div class="split-visual">
+          <div class="payment-visual-wrap">
+            <img src="img/gymku_app_mockup.png?v=2" alt="GymKu Payment" class="hero-phone-img" />
+            <div class="payment-overlay">
+              <div class="pay-card" id="pay-card">
+                <div class="pay-card-header">
+                  <span class="pay-status-dot"></span>
+                  Menunggu Pembayaran...
+                </div>
+                <div class="pay-amount">Rp 150.000</div>
+                <div class="pay-channel">VA BCA · 1234567890</div>
+                <div class="pay-progress">
+                  <div class="pay-progress-bar"></div>
+                </div>
+                <div class="pay-note">Auto-check tiap 5 detik</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEKNOLOGI STACK -->
+  <section id="teknologi" class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Arsitektur Sistem</span>
+        <h2 class="section-title">Stack Teknologi<br /><span class="gradient-text">Modern & Scalable</span></h2>
+      </div>
+      <div class="arch-grid">
+        <div class="arch-card" id="arch-mobile">
+          <div class="arch-icon">📱</div>
+          <h3>Mobile App</h3>
+          <p class="arch-tech">Flutter (Android)</p>
+          <ul class="arch-list">
+            <li>Login OTP Email</li>
+            <li>HCE NFC Virtual Card</li>
+            <li>Dompet Digital</li>
+            <li>Multi-channel Payment</li>
+            <li>Riwayat Transaksi</li>
+          </ul>
+          <div class="arch-badge">Flutter • Dart</div>
+        </div>
+        <div class="arch-card arch-card-center" id="arch-api">
+          <div class="arch-icon">⚙️</div>
+          <h3>Backend API</h3>
+          <p class="arch-tech">Node.js + Express</p>
+          <ul class="arch-list">
+            <li>REST API (JWT Auth)</li>
+            <li>Atomic SQL Anti-duplicate</li>
+            <li>E-Smartlink Integration</li>
+            <li>Docker Deployment</li>
+            <li>MySQL Database</li>
+          </ul>
+          <div class="arch-badge">Node.js • MySQL • Docker</div>
+        </div>
+        <div class="arch-card" id="arch-web">
+          <div class="arch-icon">🖥️</div>
+          <h3>Admin Web</h3>
+          <p class="arch-tech">HTML / CSS / JavaScript</p>
+          <ul class="arch-list">
+            <li>Dashboard Statistik</li>
+            <li>NFC Check-in Real-time</li>
+            <li>Manajemen Member</li>
+            <li>K-Means Analytics</li>
+            <li>Export Laporan Excel</li>
+          </ul>
+          <div class="arch-badge">HTML • JS • ExcelJS</div>
+        </div>
+        <div class="arch-card" id="arch-nfc">
+          <div class="arch-icon">📡</div>
+          <h3>NFC Bridge</h3>
+          <p class="arch-tech">Python + pyscard</p>
+          <ul class="arch-list">
+            <li>ACR122U USB Driver</li>
+            <li>WebSocket Server</li>
+            <li>APDU Protocol</li>
+            <li>5-detik Cooldown</li>
+            <li>Auto-fallback WebSocket</li>
+          </ul>
+          <div class="arch-badge">Python • pyscard • WS</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA SECTION -->
+  <section id="cta" class="section-cta">
+    <div class="cta-orb cta-orb1"></div>
+    <div class="cta-orb cta-orb2"></div>
+    <div class="container cta-inner">
+      <img src="img/logo.png" alt="GymKu" class="cta-logo" />
+      <h2 class="cta-title">Siap Modernisasi Gym Anda?</h2>
+      <p class="cta-desc">GymKu sudah live di production. Coba dashboard admin sekarang atau download APK mobile app-nya.</p>
+      <div class="cta-buttons">
+        <a href="../admin_web/" target="_blank" id="cta-btn-admin" class="btn-primary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Buka Admin Dashboard
+        </a>
+        <a href="http://localhost:3000/" target="_blank" id="cta-btn-api" class="btn-secondary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+          API Documentation
+        </a>
+      </div>
+      <div class="cta-info-row">
+        <span>🌐 <a href="../admin_web/" target="_blank">localhost Admin Web</a></span>
+        <span>⚙️ <a href="http://localhost:3000/" target="_blank">localhost:3000 API</a></span>
+        <span>👤 admin@gym.com · admin123</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer id="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <img src="img/playstore_icon.png" alt="GymKu" class="footer-logo" />
+        <div>
+          <div class="footer-name">GymKu</div>
+          <div class="footer-tagline">Sistem Manajemen Gym Terpadu</div>
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="#fitur">Fitur</a>
+        <a href="#nfc">NFC</a>
+        <a href="#payment">Payment</a>
+        <a href="#admin">Admin</a>
+        <a href="#teknologi">Teknologi</a>
+      </div>
+      <div class="footer-dev">
+        <div>Developer: <strong>Iwan Syaputra</strong></div>
+        <a href="mailto:iwantugaskuliah@gmail.com">iwantugaskuliah@gmail.com</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 GymKu — v2.1 Production Release · All rights reserved</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

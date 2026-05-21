@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isHttps) {
             console.warn('[NFC Bridge] ⚠️ Halaman HTTPS — ws:// mungkin diblokir browser (mixed content).');
             console.warn('[NFC Bridge] Buka Chrome dengan: chrome --allow-insecure-localhost');
-            console.warn('[NFC Bridge] Atau buka halaman Check-in NFC dari: http://gymku.motalindo.com/checkin.html');
+            console.warn('[NFC Bridge] Atau buka halaman Check-in NFC dari: http://localhost/membership_gym/admin_web/checkin.html');
         }
 
         _tryConnectWS(WS_PRIMARY, WS_SECONDARY);

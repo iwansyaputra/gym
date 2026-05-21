@@ -2,7 +2,7 @@
 chcp 65001 >nul
 echo ============================================================
 echo   NFC Bridge — ACR122U Reader untuk GymKu
-echo   API Server: https://api.gymku.motalindo.com
+echo   API Server: http://localhost:3000
 echo   WebSocket : ws://localhost:8765 (berjalan di komputer ini)
 echo ============================================================
 echo.
@@ -53,10 +53,10 @@ echo.
 echo      [CARA 2] Buka Chrome, ketik di address bar:
 echo      chrome://flags/#unsafely-treat-insecure-origin-as-secure
 echo      Masukkan: http://localhost:8765
-echo      Lalu buka: https://gymku.motalindo.com/checkin.html
+echo      Lalu buka: http://localhost/membership_gym/admin_web/checkin.html
 echo.
 echo   Python akan langsung POST ke:
-echo   https://api.gymku.motalindo.com/api/check-in/nfc
+echo   http://localhost:3000/api/check-in/nfc
 echo ============================================================
 echo.
 

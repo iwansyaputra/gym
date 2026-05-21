@@ -28,7 +28,7 @@ if %CHROME%=="" (
   --allow-insecure-localhost ^
   --unsafely-treat-insecure-origin-as-secure="ws://localhost:8765,ws://127.0.0.1:8765" ^
   --user-data-dir="%TEMP%\gymku-chrome-nfc" ^
-  "https://gymku.motalindo.com/checkin.html"
+  "http://localhost/membership_gym/admin_web/checkin.html"
 
 echo.
 echo [INFO] Chrome dibuka dengan WebSocket lokal aktif.
