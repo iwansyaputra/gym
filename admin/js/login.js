@@ -1,3 +1,9 @@
+// Initialize theme
+(function() {
+    const savedTheme = localStorage.getItem('gymku-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+})();
+
 // Login Page Script
 document.addEventListener('DOMContentLoaded', () => {
     // Redirect if already authenticated

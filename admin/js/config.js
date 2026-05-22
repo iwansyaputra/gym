@@ -162,10 +162,10 @@ function showToast(message, type = 'info') {
         top: 20px;
         right: 20px;
         padding: 1rem 1.5rem;
-        background: ${type === 'success' ? 'var(--success-600)' : type === 'error' ? 'var(--danger-600)' : 'var(--primary-600)'};
+        background: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--info)'};
         color: white;
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-xl);
+        border-radius: var(--r-md);
+        box-shadow: var(--shadow-lg);
         z-index: 10000;
         animation: slideInRight 0.3s ease-out;
     `;

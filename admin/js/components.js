@@ -1,4 +1,8 @@
-// admin_web/js/components.js
+// Initialize theme immediately
+(function() {
+  const savedTheme = localStorage.getItem('gymku-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+})();
 
 function renderSidebar() {
   const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
@@ -16,7 +20,6 @@ function renderSidebar() {
 
   let navItemsHtml = '';
   menuItems.forEach(item => {
-    // Exact matching for href, but also handle case where pathname is empty (default to dashboard)
     const isActive = (currentPage === item.href) || (currentPage === '' && item.href === 'dashboard.html') ? 'active' : '';
     navItemsHtml += `
     <a href="${item.href}" class="nav-item ${isActive}">
@@ -50,10 +53,51 @@ function renderSidebar() {
   </div>
   `;
 
-  // Inject into the sidebar element
   const sidebarEl = document.getElementById('sidebar');
   if (sidebarEl) {
     sidebarEl.innerHTML = sidebarHtml;
+  }
+
+  // Inject Theme Toggle into Topbar
+  const topbarRight = document.querySelector('.topbar-right');
+  if (topbarRight && !document.getElementById('themeToggleBtnHeader')) {
+    const sunIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>`;
+    
+    const moonIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>`;
+
+    const savedTheme = localStorage.getItem('gymku-theme') || 'dark';
+    const isDark = savedTheme === 'dark';
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'themeToggleBtnHeader';
+    toggleBtn.className = 'topbar-theme-toggle';
+    toggleBtn.setAttribute('aria-label', 'Toggle Theme');
+    toggleBtn.innerHTML = isDark ? sunIcon : moonIcon;
+
+    // Insert as the first element inside topbar-right
+    topbarRight.insertBefore(toggleBtn, topbarRight.firstChild);
+
+    toggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('gymku-theme', newTheme);
+
+      toggleBtn.innerHTML = newTheme === 'dark' ? sunIcon : moonIcon;
+    });
   }
 }
 

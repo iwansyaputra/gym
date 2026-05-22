@@ -1,0 +1,34 @@
+/* Custom premium styles for GymKu theme transitions and overrides */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+}
+
+/* Exclude structural transition delays on layout wrappers */
+.sidebar, .main-content, .topbar, .dashboard-page {
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform var(--t-slow) !important;
+}
+
+/* Smooth transitions for chart and inputs */
+input, select, textarea, button, .card, .nav-item, .btn {
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform var(--t) !important;
+}
+
+/* Aesthetic adjustments for light mode */
+html[data-theme="light"] body {
+  background: radial-gradient(circle at 15% 15%, rgba(0, 102, 255, 0.03) 0%, transparent 40%),
+              radial-gradient(circle at 85% 85%, rgba(0, 102, 255, 0.02) 0%, transparent 40%),
+              var(--bg);
+}
+
+/* Aesthetic adjustments for dark mode */
+html[data-theme="dark"] body {
+  background: radial-gradient(circle at 15% 15%, rgba(0, 102, 255, 0.05) 0%, transparent 40%),
+              radial-gradient(circle at 85% 85%, rgba(0, 212, 255, 0.03) 0%, transparent 40%),
+              var(--bg);
+}
+
+/* Form border highlight correction on light mode */
+html[data-theme="light"] .form-control:focus {
+  border-color: var(--brand-1);
+  box-shadow: 0 0 0 3px rgba(0, 86, 214, 0.12), inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
