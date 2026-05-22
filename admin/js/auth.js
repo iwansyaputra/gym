@@ -54,7 +54,7 @@ class AuthManager {
         sessionStorage.removeItem(API_CONFIG.STORAGE_KEYS.USER);
         this.token = null;
         this.user = null;
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
     }
 
     // Get authorization header
@@ -72,7 +72,7 @@ class AuthManager {
     // Redirect to login if not authenticated
     requireAuth() {
         if (!this.isAuthenticated()) {
-            window.location.href = 'index.html';
+            window.location.href = 'login.html';
             return false;
         }
         return true;
