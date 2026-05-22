@@ -10,11 +10,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     let lastScannedUid = null;      // Debounce — hindari scan ganda 1 kartu
     let scanCooldown   = 0;           // Timestamp terakhir scan (ms)
 
+    // ── Auto-polling interval (real-time update) ──────────────────────────────
+    const POLL_INTERVAL_MS = 5000;  // Refresh setiap 5 detik
+    let pollTimer = null;
+    let _lastDataHash = '';         // Untuk deteksi perubahan data (skip DOM re-render jika sama)
+
     // Initialize
     await loadTodayCheckins();
     await loadCheckinHistory();
     setupEventListeners();
     initializeNFCReader();
+    startAutoPolling();
 
     // ─── NFC Reader ───────────────────────────────────────────────────────────
     function initializeNFCReader() {
@@ -471,7 +477,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ─── Load check-in history table ─────────────────────────────────────────
-    async function loadCheckinHistory() {
+    async function loadCheckinHistory(forceRender = true) {
         try {
             const dateFilter = document.getElementById('dateFilter');
             // Ambil tanggal dari input, pastikan format YYYY-MM-DD (timezone lokal browser)
@@ -491,6 +497,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const response = await api.getAllCheckIns({ date });
             const tbody    = document.getElementById('checkinTableBody');
             if (!tbody) return;
+
+            // ── Hash-based change detection: skip re-render jika data tidak berubah ──
+            const newHash = JSON.stringify(response.data || []);
+            if (!forceRender && newHash === _lastDataHash) {
+                return; // Data sama, skip re-render (hemat CPU)
+            }
+            _lastDataHash = newHash;
 
             if (response.success && response.data && response.data.length > 0) {
                 tbody.innerHTML = response.data.map(checkin => {
@@ -514,4 +527,51 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast('Gagal memuat riwayat check-in', 'error');
         }
     }
+
+    // ─── AUTO-POLLING: Real-time update setiap 5 detik ────────────────────────
+    function startAutoPolling() {
+        if (pollTimer) return; // Sudah berjalan
+        pollTimer = setInterval(pollForUpdates, POLL_INTERVAL_MS);
+
+        // Pause polling saat tab tidak terlihat, resume saat aktif kembali
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    function stopAutoPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    function handleVisibilityChange() {
+        if (document.hidden) {
+            // Tab tidak terlihat → pause polling
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+        } else {
+            // Tab kembali terlihat → langsung poll sekali lalu mulai interval lagi
+            pollForUpdates();
+            if (!pollTimer) {
+                pollTimer = setInterval(pollForUpdates, POLL_INTERVAL_MS);
+            }
+        }
+    }
+
+    async function pollForUpdates() {
+        try {
+            // Refresh today counter dan history, tapi skip re-render jika data sama
+            await Promise.all([
+                loadTodayCheckins(),
+                loadCheckinHistory(false)  // false = hanya render ulang jika data berubah
+            ]);
+        } catch (err) {
+            // Polling error tidak perlu mengganggu user
+            console.warn('[Poll] Error:', err.message);
+        }
+    }
 });
+
