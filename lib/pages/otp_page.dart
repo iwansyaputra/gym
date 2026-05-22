@@ -273,7 +273,7 @@ class _OtpPageState extends State<OtpPage> {
                 const SizedBox(height: 24),
 
                 Text(
-                  "© 2025 GymFit Membership",
+                  "© 2026 GYMKU X Universitas Harkat Negeri",
                   style: TextStyle(
                     color: Colors.grey.shade600,
                     fontSize: 13,

@@ -33,7 +33,7 @@ const sendOTPEmail = async (email, otp) => {
           <p style="color: #666;">Kode OTP ini akan kadaluarsa dalam 5 menit.</p>
           <p style="color: #666;">Jika Anda tidak melakukan pendaftaran, abaikan email ini.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-          <p style="color: #999; font-size: 12px; text-align: center;">© 2024 Membership Gym. All rights reserved.</p>
+          <p style="color: #999; font-size: 12px; text-align: center;">© 2026 GYMKU X Universitas Harkat Negeri. All rights reserved.</p>
         </div>
       </div>
     `
