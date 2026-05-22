@@ -18,6 +18,14 @@ Sistem manajemen gym lengkap berbasis **Flutter (mobile)**, **Admin Web (HTML/JS
 
 ## ✨ Changelog (Mei 2026)
 
+### v2.2 — Global Theme System & Brand Enhancement
+1. **Global Theme Switching (Light/Dark Mode)**: Integrasi sistem tema terpadu berbasis CSS Variables pada Landing Page & Admin Web Dashboard, dengan inisialisasi instan untuk mencegah kedipan unstyled content (FOUC).
+2. **Topbar Theme Toggle**: Menyediakan tombol toggle tema minimalis yang interaktif di area header/topbar Admin Panel demi kebersihan layout.
+3. **Enhanced KPI Stat Cards**: Penyempurnaan kontras stat cards baik pada mode gelap (visual IoT modern) maupun mode terang (rasio kontras tinggi).
+4. **Peningkatan Durasi OTP**: Masa kadaluarsa OTP diperpanjang menjadi **5 menit** untuk kenyamanan pendaftaran akun.
+5. **Pembaruan Branding & Legal**: Mengubah seluruh copyright menjadi "GYMKU X Universitas Harkat Negeri" serta memperbarui favicon dan logo admin menggunakan aset gambar resmi `logo.png`.
+6. **Ikon Bank Pembayaran Asli**: Pada Landing Page bagian `#payment`, ditambahkan logo bank asli (BCA, BNI, Mandiri, BRI, dll) untuk meningkatkan profesionalisme visual.
+
 ### v2.1 — Multi-Channel Payment & Production Gateway
 1. **Multi-Channel Payment**: Pilihan channel bayar dinamis (VA BCA, BNI, BRI, Mandiri, Permata, CIMB, BNC, Alfamart, Indomaret) melalui *Bottom Sheet* native di dalam aplikasi Flutter.
 2. **Production Gateway**: Beralih sepenuhnya dari environment Sandbox E-Smartlink ke Production.
@@ -439,4 +447,4 @@ docker run -p 3000:3000 --env-file api/.env gymku-api
 
 ---
 
-*Terakhir diupdate: Mei 2026 — v2.0 Production Release*
+*Terakhir diupdate: Mei 2026 — v2.2 Release*
