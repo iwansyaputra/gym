@@ -119,13 +119,9 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
   String _formatDate(String? dateStr) {
     if (dateStr == null) return '';
     try {
-      DateTime date = DateTime.parse(dateStr);
-      if (date.isUtc) {
-        date = date.add(const Duration(hours: 7));
-      } else {
-        // Anggap UTC jika tanpa Z
-        date = DateTime.utc(date.year, date.month, date.day, date.hour, date.minute, date.second).add(const Duration(hours: 7));
-      }
+      // Backend sudah return waktu dalam WIB, tampilkan apa adanya
+      final normalized = dateStr.replaceAll('T', ' ').replaceAll('Z', '');
+      DateTime date = DateTime.parse(normalized);
       return DateFormat('dd MMMM yyyy').format(date);
     } catch (e) {
       return dateStr;
@@ -241,13 +237,9 @@ class _RiwayatPageState extends State<RiwayatPage> with SingleTickerProviderStat
 
     if (dateStr.isNotEmpty) {
       try {
-        // Paksa konversi ke WIB (UTC+7) mengabaikan zona waktu emulator
-        DateTime date = DateTime.parse(dateStr);
-        if (date.isUtc) {
-          date = date.add(const Duration(hours: 7));
-        } else {
-          date = DateTime.utc(date.year, date.month, date.day, date.hour, date.minute, date.second).add(const Duration(hours: 7));
-        }
+        // Backend sudah return waktu dalam WIB, tampilkan apa adanya
+        final normalized = dateStr.replaceAll('T', ' ').replaceAll('Z', '');
+        DateTime date = DateTime.parse(normalized);
         
         formattedDate = DateFormat('dd MMMM yyyy').format(date);
         formattedTime = DateFormat('HH:mm').format(date);

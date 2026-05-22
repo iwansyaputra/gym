@@ -155,11 +155,11 @@ const register = async (req, res) => {
 
         // 4. Generate & Send OTP (Normal user registration)
         const otpCode = generateOTP();
-        const expiresAt = moment().add(5, 'minutes').format('YYYY-MM-DD HH:mm:ss');
 
+        // Gunakan DATE_ADD(NOW()) dari MySQL agar timezone konsisten dengan NOW() saat verifikasi
         await pool.query(
-            'INSERT INTO otps (email, otp_code, expires_at) VALUES (?, ?, ?)',
-            [email, otpCode, expiresAt]
+            'INSERT INTO otps (email, otp_code, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE))',
+            [email, otpCode]
         );
 
         const emailSent = await sendOTPEmail(email, otpCode);
@@ -401,12 +401,11 @@ const resendOTP = async (req, res) => {
 
         // Generate new OTP
         const otpCode = generateOTP();
-        const expiresAt = moment().add(5, 'minutes').format('YYYY-MM-DD HH:mm:ss');
 
-        // Save OTP to database
+        // Save OTP to database — Gunakan DATE_ADD(NOW()) dari MySQL agar timezone konsisten
         await pool.query(
-            'INSERT INTO otps (email, otp_code, expires_at) VALUES (?, ?, ?)',
-            [email, otpCode, expiresAt]
+            'INSERT INTO otps (email, otp_code, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE))',
+            [email, otpCode]
         );
 
         // Send OTP email
