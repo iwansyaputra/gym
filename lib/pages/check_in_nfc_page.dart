@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:nfc_host_card_emulation/nfc_host_card_emulation.dart';
@@ -5,6 +6,12 @@ import '../services/api_service.dart';
 import '../services/auth_storage.dart';
 import 'membership_packages_page.dart';
 
+/// CheckInNfcPage — HCE mode untuk semua merek HP Android
+///
+/// Perbaikan cross-device:
+///   - HCE diinisialisasi OTOMATIS saat kartu berhasil dimuat (bukan saat tombol ditekan)
+///   - Dengan begitu HP sudah siap merespons reader ACR122U sebelum user tap tombol
+///   - Bekerja di Huawei, Oppo, Samsung, Xiaomi, Vivo, dll.
 class CheckInNfcPage extends StatefulWidget {
   const CheckInNfcPage({super.key});
 
@@ -14,163 +21,242 @@ class CheckInNfcPage extends StatefulWidget {
 
 class _CheckInNfcPageState extends State<CheckInNfcPage>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
-  String statusText = "Tap tombol untuk mulai scan NFC";
-  bool isScanning = false;
-  bool apduAdded = false;
-
-  final port = 0;
-  String nfcPayload = "LOADING...";
-  List<int> nfcData = [];
+  String statusText = 'Memuat data kartu...';
+  bool isLoading = true;
   bool isCardLoaded = false;
+  bool isActive = false; // true = HCE sudah aktif, siap di-tap
+
+  final int _port = 0;
+  String nfcPayload = '';
+  bool _apduAdded = false;
+  StreamSubscription<dynamic>? _hceSub;
 
   @override
   void initState() {
     super.initState();
-    _loadUserCard();
 
-    _controller = AnimationController(
+    _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(
+      begin: 0.9,
+      end: 1.1,
+    ).animate(_pulseController);
 
-    _animation = Tween<double>(begin: 0.85, end: 1.15).animate(_controller);
-
-    NfcHce.stream.listen((command) {
+    _hceSub = NfcHce.stream.listen((cmd) {
+      debugPrint('[HCE] APDU received: $cmd');
       if (!isCardLoaded) return;
+      if (mounted) {
+        setState(() {
+          statusText =
+              'Kartu terkirim ke reader! ✅\nCheck-in dicatat oleh sistem.';
+        });
+      }
+    }, onError: (e) => debugPrint('[HCE] Stream error: $e'));
 
-      setState(() {
-        // Hanya update status UI — check-in dicatat oleh admin web via ACR122U
-        statusText = "Kartu terkirim ke reader! ✅\nCheck-in dicatat oleh sistem.";
-        isScanning = false;
-      });
-
-      // TIDAK memanggil _sendCheckIn di sini
-      // Agar tidak double check-in dengan admin web yang sudah handle via bridge
-    });
+    _loadUserCard();
   }
 
+  // ── Load kartu & langsung inisialisasi HCE ─────────────────────────────────
   Future<void> _loadUserCard() async {
+    if (mounted)
+      setState(() {
+        isLoading = true;
+        isCardLoaded = false;
+      });
+
     try {
-      // Prioritas 1: Ambil profile terbaru dari API untuk memastikan status keanggotaan real-time
       final result = await ApiService.getProfile();
-      
+
+      String? payload;
+      bool memberActive = false;
+
       if (result['success'] == true && result['data'] != null) {
         final card = result['data']['card'];
         final user = result['data']['user'];
         final m = result['data']['membership'];
 
-        // Cek status membership
-        bool isActive = (m != null && m['status'] == 'active');
-        
-        if (!isActive) {
-          setState(() {
-            isCardLoaded = false;
-            statusText = "Membership tidak aktif.\nSilakan beli paket terlebih dahulu.";
-          });
-          _showMembershipRequiredDialog();
-          return;
-        }
+        memberActive = (m != null && m['status'] == 'active');
 
-        // Gunakan nfc_id dari tabel member_cards jika ada
-        if (card != null && card['nfc_id'] != null) {
-          setState(() {
-            nfcPayload = card['nfc_id'].toString();
-            isCardLoaded = true;
-            statusText = "Kartu Siap: $nfcPayload\n(Tap tombol di bawah)";
-          });
-          print('== NFC Payload (profile card.nfc_id): $nfcPayload');
-        } else if (user != null && user['id'] != null) {
-          // Fallback: pakai user_id
-          setState(() {
-            nfcPayload = user['id'].toString();
-            isCardLoaded = true;
-            statusText = "ID Member: $nfcPayload\n(Tap tombol di bawah)";
-          });
-          print('== NFC Payload (user_id fallback): $nfcPayload');
-        } else {
-          setState(() {
-            statusText = "Data kartu tidak ditemukan.";
-          });
+        if (memberActive) {
+          if (card != null && card['nfc_id'] != null) {
+            payload = card['nfc_id'].toString();
+          } else if (user != null && user['id'] != null) {
+            payload = user['id'].toString();
+          }
         }
       } else {
-        // Fallback jika API gagal (misal koneksi internet lambat), cek dari local storage
-        final localData = await AuthStorage.getUserData();
-        final String? localStatus = localData?['membershipStatus'];
-        
-        if (localStatus != 'Active') {
-          setState(() {
-            isCardLoaded = false;
-            statusText = "Membership tidak aktif.";
-          });
-          _showMembershipRequiredDialog();
-          return;
-        }
-
-        final cardNumber = localData?['cardNumber'];
-        if (cardNumber != null && cardNumber.isNotEmpty && cardNumber != '-') {
-          setState(() {
-            nfcPayload = cardNumber;
-            isCardLoaded = true;
-            statusText = "Kartu Siap: $nfcPayload\n(Tap tombol di bawah)";
-          });
-          print('== NFC Payload (local cardNumber): $nfcPayload');
-        } else {
-          setState(() {
-            statusText = "Data kartu tidak ditemukan di perangkat.";
-          });
+        // Fallback local storage
+        final local = await AuthStorage.getUserData();
+        memberActive = local?['membershipStatus'] == 'Active';
+        if (memberActive) {
+          final cn = local?['cardNumber'];
+          if (cn != null && cn.isNotEmpty && cn != '-') payload = cn;
         }
       }
+
+      if (!memberActive) {
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+            isCardLoaded = false;
+            statusText =
+                'Membership tidak aktif.\nSilakan beli paket terlebih dahulu.';
+          });
+          _showMembershipDialog();
+        }
+        return;
+      }
+
+      if (payload == null || payload.isEmpty) {
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+            statusText = 'Data kartu tidak ditemukan.\nHubungi admin gym.';
+          });
+        }
+        return;
+      }
+
+      nfcPayload = payload;
+
+      // ── INISIALISASI HCE LANGSUNG — kunci kompatibilitas lintas merek ──────
+      await _initHce();
+
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          isCardLoaded = true;
+          isActive = true;
+          statusText = 'Kartu Aktif ✅\nTempelkan HP ke NFC Reader di Gate Gym';
+        });
+      }
     } catch (e) {
-      print('== _loadUserCard error: $e');
+      debugPrint('[NFC] _loadUserCard error: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          statusText = 'Gagal memuat kartu.\nPastikan koneksi internet aktif.';
+        });
+      }
+    }
+  }
+
+  Future<void> _initHce() async {
+    try {
+      final nfcState = await NfcHce.checkDeviceNfcState();
+      if (nfcState != NfcState.enabled) {
+        if (mounted) {
+          setState(
+            () => statusText =
+                'NFC tidak aktif.\nAktifkan NFC di Pengaturan terlebih dahulu.',
+          );
+        }
+        return;
+      }
+
+      await NfcHce.init(
+        aid: Uint8List.fromList([0xA0, 0x00, 0xDA, 0xDA, 0xDA, 0xDA, 0xDA]),
+        permanentApduResponses: true,
+        listenOnlyConfiguredPorts: false,
+      );
+
+      if (!_apduAdded) {
+        final bytes = Uint8List.fromList(nfcPayload.codeUnits);
+        await NfcHce.addApduResponse(_port, bytes);
+        _apduAdded = true;
+        debugPrint('[HCE] APDU registered: $nfcPayload');
+      }
+    } catch (e) {
+      debugPrint('[HCE] _initHce error: $e');
+    }
+  }
+
+  // ── Tap tombol: refresh APDU jika perlu, update status ────────────────────
+  Future<void> _onTapActivate() async {
+    if (!isCardLoaded) return;
+
+    setState(() => statusText = 'Menyegarkan kartu NFC...');
+
+    // Re-init untuk memastikan APDU terdaftar (berguna setelah screen off)
+    if (_apduAdded) {
+      await NfcHce.removeApduResponse(_port);
+      _apduAdded = false;
+    }
+    await _initHce();
+
+    if (mounted) {
       setState(() {
-        statusText = "Gagal memuat kartu. Pastikan koneksi internet aktif.";
+        isActive = true;
+        statusText = 'Kartu Aktif ✅\nTempelkan HP ke NFC Reader di Gate Gym';
       });
     }
   }
 
-  void _showMembershipRequiredDialog() {
+  void _showMembershipDialog() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
+        builder: (ctx) => AlertDialog(
           backgroundColor: const Color(0xFF1A1A1A),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 26),
               SizedBox(width: 10),
-              Text('Akses Ditolak', style: TextStyle(color: Colors.white, fontSize: 18)),
+              Text(
+                'Akses Ditolak',
+                style: TextStyle(color: Colors.white, fontSize: 17),
+              ),
             ],
           ),
           content: const Text(
-            'Anda belum memiliki paket membership aktif atau masa aktif Anda sudah habis. Silakan beli langganan untuk bisa melakukan check-in.',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+            'Anda belum memiliki membership aktif atau masa aktif sudah habis. '
+            'Silakan beli paket untuk melakukan check-in.',
+            style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Tutup dialog
-                Navigator.pop(context); // Kembali ke beranda
+                Navigator.pop(ctx);
+                Navigator.pop(context);
               },
-              child: const Text('Kembali', style: TextStyle(color: Colors.grey)),
+              child: const Text(
+                'Kembali',
+                style: TextStyle(color: Colors.grey),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context); // Tutup dialog
+                Navigator.pop(ctx);
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const MembershipPackagesPage()),
+                  MaterialPageRoute(
+                    builder: (_) => const MembershipPackagesPage(),
+                  ),
                 );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2196F3),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-              child: const Text('Beli Member', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Beli Member',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -180,96 +266,10 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
 
   @override
   void dispose() {
-    _controller.dispose();
-    if (apduAdded) {
-      NfcHce.removeApduResponse(port);
-    }
+    _pulseController.dispose();
+    _hceSub?.cancel();
+    if (_apduAdded) NfcHce.removeApduResponse(_port);
     super.dispose();
-  }
-
-  List<int> convertIdToBytes(String id) {
-    return Uint8List.fromList(id.codeUnits);
-  }
-
-  Future<void> _sendCheckIn(String nfcId) async {
-    final result = await ApiService.checkInNfc(nfcId: nfcId);
-
-    if (mounted) {
-      if (result['success'] == true) {
-        setState(() {
-          statusText = "Check-in berhasil! 💪";
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Check-in berhasil!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            Navigator.pop(context);
-          }
-        });
-      } else {
-        setState(() {
-          statusText = result['message'] ?? 'Check-in gagal';
-          isScanning = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Check-in gagal'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      }
-    }
-  }
-
-  void startScan() async {
-    if (isScanning || !isCardLoaded) return;
-
-    setState(() {
-      isScanning = true;
-      statusText = "Menyiapkan NFC...";
-    });
-
-    final nfcState = await NfcHce.checkDeviceNfcState();
-
-    if (nfcState != NfcState.enabled) {
-      setState(() {
-        statusText = "NFC tidak aktif.\nAktifkan NFC terlebih dahulu.";
-        isScanning = false;
-      });
-      return;
-    }
-
-    await NfcHce.init(
-      aid: Uint8List.fromList([0xA0, 0x00, 0xDA, 0xDA, 0xDA, 0xDA, 0xDA]),
-      permanentApduResponses: true,
-      listenOnlyConfiguredPorts: false,
-    );
-
-    nfcData = convertIdToBytes(nfcPayload);
-
-    if (!apduAdded) {
-      await NfcHce.addApduResponse(port, nfcData);
-      apduAdded = true;
-    }
-
-    setState(() {
-      statusText = "Tempelkan HP Anda\nke NFC Reader di Gate Gym";
-    });
   }
 
   @override
@@ -282,103 +282,163 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
         centerTitle: true,
         elevation: 0,
         title: const Text(
-          "Check In Gate",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
+          'Check In NFC',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: isLoading ? null : _loadUserCard,
+            tooltip: 'Refresh kartu',
+          ),
+        ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(30),
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF2196F3)),
+            )
+          : _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // ── Animasi ikon NFC ──────────────────────────────────────────────
+            ScaleTransition(
+              scale: isActive
+                  ? _pulseAnimation
+                  : const AlwaysStoppedAnimation(1.0),
+              child: Container(
+                width: 170,
+                height: 170,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isScanning 
-                      ? const Color(0xFF2196F3).withOpacity(0.1) 
+                  color: isActive
+                      ? const Color(0xFF2196F3).withOpacity(0.12)
                       : const Color(0xFF1A1A1A),
                   border: Border.all(
-                    color: isScanning 
-                        ? const Color(0xFF2196F3).withOpacity(0.5) 
-                        : Colors.white.withOpacity(0.05),
+                    color: isActive
+                        ? const Color(0xFF2196F3).withOpacity(0.6)
+                        : Colors.white.withOpacity(0.06),
                     width: 2,
                   ),
-                  boxShadow: isScanning ? [
-                    BoxShadow(
-                      color: const Color(0xFF2196F3).withOpacity(0.2),
-                      blurRadius: 30,
-                      spreadRadius: 10,
-                    )
-                  ] : null,
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF2196F3).withOpacity(0.28),
+                            blurRadius: 50,
+                            spreadRadius: 18,
+                          ),
+                        ]
+                      : null,
                 ),
-                child: ScaleTransition(
-                  scale: isScanning ? _animation : const AlwaysStoppedAnimation(1.0),
-                  child: Icon(
-                    Icons.nfc_rounded,
-                    size: 100,
-                    color: isScanning ? const Color(0xFF2196F3) : Colors.grey.withOpacity(0.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 50),
-
-              Text(
-                statusText,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  height: 1.5,
+                child: Icon(
+                  Icons.nfc_rounded,
+                  size: 95,
+                  color: isActive
+                      ? const Color(0xFF2196F3)
+                      : Colors.grey.withOpacity(0.35),
                 ),
               ),
+            ),
 
-              const SizedBox(height: 60),
+            const SizedBox(height: 40),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: isScanning || !isCardLoaded ? null : startScan,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
-                    disabledBackgroundColor: const Color(0xFF1A1A1A),
-                    foregroundColor: Colors.white,
-                    disabledForegroundColor: Colors.grey,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: isScanning || !isCardLoaded 
-                          ? BorderSide(color: Colors.white.withOpacity(0.1)) 
-                          : BorderSide.none,
+            // ── Status text ───────────────────────────────────────────────────
+            Text(
+              statusText,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: isActive ? Colors.white : Colors.grey.shade400,
+                height: 1.6,
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // ── Badge NFC ID ──────────────────────────────────────────────────
+            if (isCardLoaded && nfcPayload.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.07)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.badge_outlined,
+                      size: 15,
+                      color: Colors.grey.shade500,
                     ),
-                    elevation: isScanning ? 0 : 5,
-                  ),
-                  child: Text(
-                    isScanning ? "Scanning..." : "Mulai Scan NFC",
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
+                    const SizedBox(width: 8),
+                    Text(
+                      'ID: $nfcPayload',
+                      style: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                      ),
                     ),
+                  ],
+                ),
+              ),
+
+            const SizedBox(height: 52),
+
+            // ── Tombol Aktifkan/Refresh ───────────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: isCardLoaded ? _onTapActivate : null,
+                icon: const Icon(Icons.nfc_rounded),
+                label: Text(
+                  isActive ? 'Segarkan Kartu NFC' : 'Aktifkan Kartu NFC',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
                   ),
                 ),
-              ),
-              const SizedBox(height: 30),
-              Text(
-                "Info Teknis Reader:\nAID: A000DADADADADA",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.2), 
-                  fontSize: 10,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2196F3),
+                  disabledBackgroundColor: const Color(0xFF1A1A1A),
+                  foregroundColor: Colors.white,
+                  disabledForegroundColor: Colors.grey,
+                  padding: const EdgeInsets.symmetric(vertical: 17),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 6,
                 ),
               ),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // ── Catatan teknis ────────────────────────────────────────────────
+            Text(
+              'AID: A0 00 DA DA DA DA DA\nHP berfungsi sebagai kartu NFC virtual — tap ke reader ACR122U',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.18),
+                fontSize: 10,
+                height: 1.5,
+              ),
+            ),
+          ],
         ),
       ),
     );
