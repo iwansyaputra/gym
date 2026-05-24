@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('gymku-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
   <link rel="icon" href="img/logo.png" type="image/png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +19,7 @@
             padding: 20px;
             background-color: #f4f4f4;
             color: #333;
+            transition: background-color 0.3s, color 0.3s;
         }
         .container {
             max-width: 800px;
@@ -21,9 +28,26 @@
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            transition: background-color 0.3s, border-color 0.3s;
         }
         h1, h2 {
             color: #0A0A0A;
+        }
+        /* Dark Theme overrides */
+        html[data-theme="dark"] body {
+            background-color: #050810;
+            color: #e2e8f0;
+        }
+        html[data-theme="dark"] .container {
+            background: #080d1a;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        html[data-theme="dark"] h1, html[data-theme="dark"] h2 {
+            color: #00d4ff;
+        }
+        html[data-theme="dark"] a {
+            color: #00d4ff;
         }
     </style>
 </head>

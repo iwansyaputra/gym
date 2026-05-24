@@ -2,6 +2,12 @@
 <html lang="id">
 
 <head>
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('gymku-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
   <link rel="icon" href="img/logo.png" type="image/png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
