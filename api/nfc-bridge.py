@@ -279,7 +279,10 @@ def read_hce_nfc_id(connection) -> dict:
         elif sw1 == 0x6A and sw2 == 0x82:
             log.info("SELECT AID: File Not Found (6A82) → Kartu fisik biasa. Baca UID...")
         else:
-            log.warning(f"SELECT AID SW tidak dikenal: {sw1:02X} {sw2:02X}")
+            if sw1 is not None and sw2 is not None:
+                log.warning(f"SELECT AID SW tidak dikenal: {sw1:02X} {sw2:02X}")
+            else:
+                log.warning("SELECT AID gagal (koneksi terputus/None)")
 
     except Exception as e:
         log.warning(f"APDU error: {e}. Fallback baca UID...")

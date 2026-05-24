@@ -151,15 +151,7 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
   Future<bool> _initHce() async {
     try {
       final nfcState = await NfcHce.checkDeviceNfcState();
-      if (nfcState != NfcState.enabled) {
-        if (mounted) {
-          setState(
-            () => statusText =
-                'NFC tidak aktif.\nAktifkan NFC di Pengaturan HP Anda.',
-          );
-        }
-        return false;
-      }
+      debugPrint('[HCE] checkDeviceNfcState returned: $nfcState. Initializing HCE...');
 
       await NfcHce.init(
         aid: Uint8List.fromList([0xA0, 0x00, 0xDA, 0xDA, 0xDA, 0xDA, 0xDA]),
