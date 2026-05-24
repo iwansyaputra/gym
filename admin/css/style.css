@@ -1476,7 +1476,7 @@ select.form-control option { background: var(--surface-2); }
 
   .sidebar {
     transform: translateX(-100%);
-    width: 240px;
+    width: 260px;
   }
 
   .sidebar.active {
@@ -1484,15 +1484,78 @@ select.form-control option { background: var(--surface-2); }
     box-shadow: var(--shadow-lg);
   }
 
+  /* Overlay backdrop when sidebar is open */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 199;
+    backdrop-filter: blur(2px);
+  }
+  .sidebar-overlay.active { display: block; }
+
   .menu-toggle { display: flex; }
   .main-content { margin-left: 0; }
   .content-area { padding: 16px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .topbar { padding: 0 16px; }
+  .topbar { padding: 0 12px; height: 56px; }
+
+  /* Sembunyikan badge & nama admin di mobile agar topbar tidak overflow */
+  .topbar-badge { display: none; }
+  .topbar-admin-name,
+  .topbar-admin-role { display: none; }
+  .topbar-admin { padding: 4px; }
+
+  /* Sembunyikan topbar-badge-text, cukup tampilkan dot */
+  .topbar-badge-text { display: none; }
+
+  /* Charts stacking */
+  .charts-row { grid-template-columns: 1fr; }
+
+  /* Page header stack */
+  .page-header { flex-direction: column; gap: 10px; }
+  .page-header-right { width: 100%; }
+
+  /* Toolbar wrap */
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .toolbar-left, .toolbar-right { width: 100%; }
+  .search-box { min-width: 0; width: 100%; }
+
+  /* Modal full width on mobile */
+  .modal-box, .modal-box.modal-lg { max-width: calc(100vw - 32px); }
+
+  /* Form rows single column */
+  .form-row, .form-row-3 { grid-template-columns: 1fr; }
+
+  /* Table horizontal scroll */
+  .table-wrap { -webkit-overflow-scrolling: touch; }
+
+  /* Tabs scrollable */
+  .tabs { width: 100%; overflow-x: auto; }
+
+  /* Login page */
+  .login-left { display: none; }
+  .login-right { width: 100%; border: none; background: var(--bg); }
 }
 
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }
+  .content-area { padding: 12px; }
+  .card { padding: 16px; }
+  .topbar-page-title { font-size: .9rem; }
+
+  /* Stat card compact */
+  .stat-value { font-size: 1.5rem; }
+
+  /* Scanner section */
+  .scanner-section { padding: 16px; }
+}
+
+@media (max-width: 360px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .btn { padding: 7px 12px; font-size: .8rem; }
+  .topbar { padding: 0 8px; }
 }
 
 /* ── Divider ───────────────────────────────────────────────── */

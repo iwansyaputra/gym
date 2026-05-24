@@ -58,6 +58,60 @@ function renderSidebar() {
     sidebarEl.innerHTML = sidebarHtml;
   }
 
+  // --- Inject sidebar overlay backdrop (for mobile) ---
+  if (!document.getElementById('sidebarOverlay')) {
+    const overlay = document.createElement('div');
+    overlay.id = 'sidebarOverlay';
+    overlay.className = 'sidebar-overlay';
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', closeSidebar);
+  }
+
+  // --- Mobile menu toggle logic ---
+  function openSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.add('active');
+    if (overlay) overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Menu toggle button
+  const menuToggle = document.getElementById('menuToggle');
+  if (menuToggle) {
+    // Remove old listeners by cloning
+    const newToggle = menuToggle.cloneNode(true);
+    menuToggle.parentNode.replaceChild(newToggle, menuToggle);
+    newToggle.addEventListener('click', () => {
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar && sidebar.classList.contains('active')) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+  }
+
+  // Auto-close sidebar on mobile when a nav item is clicked
+  if (sidebarEl) {
+    sidebarEl.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+          closeSidebar();
+        }
+      });
+    });
+  }
+
   // Inject Theme Toggle into Topbar
   const topbarRight = document.querySelector('.topbar-right');
   if (topbarRight && !document.getElementById('themeToggleBtnHeader')) {
