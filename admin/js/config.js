@@ -4,7 +4,7 @@ const API_CONFIG = {
     // BASE_URL: 'https://api.gymku.motalindo.com/api',
 
     // 🏠 Localhost — untuk development lokal
-    BASE_URL: 'https://gymapi-zeta.vercel.app/api',
+    BASE_URL: 'https://api.gymku.my.id/api',
 
     // Endpoints
     ENDPOINTS: {

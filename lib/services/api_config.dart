@@ -6,7 +6,7 @@ class ApiConfig {
   // URL dasar server API yang digunakan untuk semua request
 
   // 🌐 MODE PRODUCTION — API sudah di-hosting di:
-  static const String _productionUrl = 'https://gymapi-zeta.vercel.app';
+  static const String _productionUrl = 'https://api.gymku.my.id';
 
   // 🏠 MODE LOCALHOST — Untuk development lokal
   // Gunakan localhost untuk browser (Flutter Web)

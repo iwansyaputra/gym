@@ -2,7 +2,7 @@
 chcp 65001 >nul
 echo ============================================================
 echo   NFC Bridge — ACR122U Reader untuk GymKu
-echo   API Server: https://gymapi-zeta.vercel.app
+echo   API Server: https://api.gymku.my.id
 echo   WebSocket : ws://localhost:8765 (berjalan di komputer ini)
 echo ============================================================
 echo.
@@ -56,7 +56,7 @@ echo      Masukkan: http://localhost:8765
 echo      Lalu buka: http://localhost/membership_gym/admin_web/checkin.html
 echo.
 echo   Python akan langsung POST ke:
-echo   https://gymapi-zeta.vercel.app/api/check-in/nfc
+echo   https://api.gymku.my.id/api/check-in/nfc
 echo ============================================================
 echo.
 

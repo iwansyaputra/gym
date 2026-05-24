@@ -32,7 +32,7 @@ except ImportError:
 # ──────────────────────────────────────────────────────────────────────────────
 # KONFIGURASI API
 # ──────────────────────────────────────────────────────────────────────────────
-API_BASE_URL = "https://gymapi-zeta.vercel.app/api"
+API_BASE_URL = "https://api.gymku.my.id/api"
 NFC_SECRET_KEY = "nfc-bridge-secret-2024"  # Harus sama dengan backend .env NFC_SECRET_KEY
 CHECKIN_ENDPOINT = f"{API_BASE_URL}/check-in/nfc"
 
