@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <tr>
                             <td>${formatDateTime(checkin.check_in_time)}</td>
                             <td>${checkin.user_name || '-'}</td>
-                            <td>${checkin.user_id   || '-'}</td>
+                            <td>${checkin.nfc_id    || '-'}</td>
                             <td>${checkin.nfc_id    || '-'}</td>
                             <td><span class="badge ${status.class}">${status.label}</span></td>
                             <td><span class="badge badge-primary">${checkin.check_in_method || 'NFC'}</span></td>

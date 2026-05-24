@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const status = getMembershipStatus(member.membership_expiry, member.membership_status || 'none');
             return `
                 <tr>
-                    <td>${member.id}</td>
+                    <td>${member.nfc_id || member.id}</td>
                     <td>${member.name || '-'}</td>
                     <td>${member.email || '-'}</td>
                     <td>${member.phone || '-'}</td>

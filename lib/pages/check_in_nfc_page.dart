@@ -128,17 +128,17 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
 
       nfcPayload = payload;
 
-      // ── INISIALISASI HCE LANGSUNG — kunci kompatibilitas lintas merek ──────
-      final ok = await _initHce();
+      // Simpan payload secara offline untuk Native HCE
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('nfc_payload', nfcPayload);
+      await prefs.setBool('nfc_active', false); // Default: belum aktif scan
 
       if (mounted) {
         setState(() {
           isLoading = false;
           isCardLoaded = true;
-          isActive = ok;
-          if (ok) {
-            statusText = 'Kartu Aktif ✅\nTempelkan HP ke NFC Reader di Gate Gym';
-          }
+          isActive = false; // Harus tekan tombol dulu untuk scan
+          statusText = 'Kartu Siap ✅\nTekan tombol di bawah untuk mulai scan';
         });
       }
     } catch (e) {
@@ -154,12 +154,11 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
 
   Future<bool> _initHce() async {
     try {
-      // Simpan payload ke SharedPreferences agar bisa dibaca oleh service native MyHceService
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('nfc_payload', nfcPayload);
-      debugPrint('[HCE] Payload saved to SharedPreferences: $nfcPayload');
+      await prefs.setBool('nfc_active', true);
+      debugPrint('[HCE] HCE activated in SharedPreferences.');
 
-      // Opsional: Cek status NFC
       final nfcState = await NfcHce.checkDeviceNfcState();
       debugPrint('[HCE] Device NFC State check: $nfcState');
       if (nfcState == NfcState.disabled) {
@@ -173,25 +172,36 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
       return true;
     } catch (e) {
       debugPrint('[HCE] _initHce error: $e');
-      return true; // Return true agar tidak memblokir user jika API checkState crash
+      return true;
     }
   }
 
-  // ── Tap tombol: refresh APDU jika perlu, update status ────────────────────
   Future<void> _onTapActivate() async {
     if (!isCardLoaded) return;
 
-    setState(() => statusText = 'Menyegarkan kartu NFC...');
-
-    final ok = await _initHce();
-
-    if (mounted) {
-      setState(() {
-        isActive = ok;
-        if (ok) {
-          statusText = 'Kartu Aktif ✅\nTempelkan HP ke NFC Reader di Gate Gym';
-        }
-      });
+    if (isActive) {
+      // Matikan
+      setState(() => statusText = 'Menonaktifkan kartu NFC...');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('nfc_active', false);
+      if (mounted) {
+        setState(() {
+          isActive = false;
+          statusText = 'Kartu Siap ✅\nTekan tombol di bawah untuk mulai scan';
+        });
+      }
+    } else {
+      // Aktifkan
+      setState(() => statusText = 'Mengaktifkan kartu NFC...');
+      final ok = await _initHce();
+      if (mounted) {
+        setState(() {
+          isActive = ok;
+          if (ok) {
+            statusText = 'Kartu Aktif ✅\nTempelkan HP ke NFC Reader di Gate Gym';
+          }
+        });
+      }
     }
   }
 
@@ -265,6 +275,9 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
   @override
   void dispose() {
     _pulseController.dispose();
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setBool('nfc_active', false);
+    }).catchError((e) => debugPrint('[HCE] Clear active on dispose error: $e'));
     super.dispose();
   }
 

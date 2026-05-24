@@ -14,7 +14,16 @@ class MyHceService : HostApduService() {
         }
 
         val hexCommand = bytesToHex(commandApdu)
-        Log.d("MyHceService", "Command received: $hexCommand")
+        
+        // Single prefs declaration for the entire function scope
+        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val nfcActive = prefs.getBoolean("flutter.nfc_active", false)
+        Log.d("MyHceService", "Command received: $hexCommand, active: $nfcActive")
+
+        if (!nfcActive) {
+            Log.d("MyHceService", "HCE is not active. Rejecting command.")
+            return byteArrayOf(0x6A.toByte(), 0x82.toByte()) // File not found
+        }
 
         // Send a broadcast intent to MainActivity to trigger Flutter UI updates
         val intent = Intent("com.motalindo.gymku.HCE_TAP")
@@ -22,10 +31,7 @@ class MyHceService : HostApduService() {
 
         // Check if it is a SELECT AID command: 00 A4 04 00 ...
         if (commandApdu.size >= 4 && commandApdu[0] == 0x00.toByte() && commandApdu[1] == 0xA4.toByte() && commandApdu[2] == 0x04.toByte() && commandApdu[3] == 0x00.toByte()) {
-            // Read payload from SharedPreferences (written by SharedPreferences in Flutter)
-            val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
             val payload = prefs.getString("flutter.nfc_payload", null)
-
             Log.d("MyHceService", "SELECT AID command. Payload: $payload")
 
             if (payload != null && payload.isNotEmpty()) {
@@ -42,7 +48,6 @@ class MyHceService : HostApduService() {
         }
 
         // Trigger command or other commands: send payload
-        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val payload = prefs.getString("flutter.nfc_payload", null)
         if (payload != null && payload.isNotEmpty()) {
             val payloadBytes = payload.toByteArray(Charsets.US_ASCII)
