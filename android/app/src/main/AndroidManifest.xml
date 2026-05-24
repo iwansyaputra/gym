@@ -31,9 +31,8 @@
 
         </activity>
 
-        <!-- ================ DIPINDAHKAN KE SINI (BENAR) ================= -->
         <service
-            android:name="io.flutter.plugins.nfc_host_card_emulation.AndroidHceService"
+            android:name="com.motalindo.gymku.MyHceService"
             android:exported="true"
             android:permission="android.permission.BIND_NFC_SERVICE">
 
@@ -45,7 +44,6 @@
                 android:name="android.nfc.cardemulation.host_apdu_service"
                 android:resource="@xml/apduservice" />
         </service>
-        <!-- ============================================================ -->
 
         <meta-data
             android:name="flutterEmbedding"

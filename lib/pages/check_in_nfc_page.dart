@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nfc_host_card_emulation/nfc_host_card_emulation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage.dart';
 import 'membership_packages_page.dart';
@@ -31,8 +33,7 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
 
   final int _port = 0;
   String nfcPayload = '';
-  bool _apduAdded = false;
-  StreamSubscription<dynamic>? _hceSub;
+  static const _channel = MethodChannel('com.motalindo.gymku/hce');
 
   @override
   void initState() {
@@ -47,16 +48,19 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
       end: 1.1,
     ).animate(_pulseController);
 
-    _hceSub = NfcHce.stream.listen((cmd) {
-      debugPrint('[HCE] APDU received: $cmd');
-      if (!isCardLoaded) return;
-      if (mounted) {
-        setState(() {
-          statusText =
-              'Kartu terkirim ke reader! ✅\nCheck-in dicatat oleh sistem.';
-        });
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onHceTapped') {
+        debugPrint('[HCE] Native APDU tapped received!');
+        if (!isCardLoaded) return;
+        if (mounted) {
+          setState(() {
+            statusText =
+                'Kartu terkirim ke reader! ✅\nCheck-in dicatat oleh sistem.';
+          });
+        }
       }
-    }, onError: (e) => debugPrint('[HCE] Stream error: $e'));
+      return null;
+    });
 
     _loadUserCard();
   }
@@ -150,30 +154,26 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
 
   Future<bool> _initHce() async {
     try {
+      // Simpan payload ke SharedPreferences agar bisa dibaca oleh service native MyHceService
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('nfc_payload', nfcPayload);
+      debugPrint('[HCE] Payload saved to SharedPreferences: $nfcPayload');
+
+      // Opsional: Cek status NFC
       final nfcState = await NfcHce.checkDeviceNfcState();
-      debugPrint('[HCE] checkDeviceNfcState returned: $nfcState. Initializing HCE...');
-
-      await NfcHce.init(
-        aid: Uint8List.fromList([0xA0, 0x00, 0xDA, 0xDA, 0xDA, 0xDA, 0xDA]),
-        permanentApduResponses: true,
-        listenOnlyConfiguredPorts: false,
-      );
-
-      if (!_apduAdded) {
-        final bytes = Uint8List.fromList(nfcPayload.codeUnits);
-        await NfcHce.addApduResponse(_port, bytes);
-        _apduAdded = true;
-        debugPrint('[HCE] APDU registered: $nfcPayload');
+      debugPrint('[HCE] Device NFC State check: $nfcState');
+      if (nfcState == NfcState.disabled) {
+        if (mounted) {
+          setState(() {
+            statusText = 'NFC tidak aktif.\nAktifkan NFC di Pengaturan HP Anda.';
+          });
+        }
+        return false;
       }
       return true;
     } catch (e) {
       debugPrint('[HCE] _initHce error: $e');
-      if (mounted) {
-        setState(
-          () => statusText = 'Gagal mengaktifkan NFC HCE: $e',
-        );
-      }
-      return false;
+      return true; // Return true agar tidak memblokir user jika API checkState crash
     }
   }
 
@@ -183,11 +183,6 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
 
     setState(() => statusText = 'Menyegarkan kartu NFC...');
 
-    // Re-init untuk memastikan APDU terdaftar (berguna setelah screen off)
-    if (_apduAdded) {
-      await NfcHce.removeApduResponse(_port);
-      _apduAdded = false;
-    }
     final ok = await _initHce();
 
     if (mounted) {
@@ -270,8 +265,6 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
   @override
   void dispose() {
     _pulseController.dispose();
-    _hceSub?.cancel();
-    if (_apduAdded) NfcHce.removeApduResponse(_port);
     super.dispose();
   }
 
