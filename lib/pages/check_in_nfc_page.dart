@@ -125,14 +125,16 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
       nfcPayload = payload;
 
       // ── INISIALISASI HCE LANGSUNG — kunci kompatibilitas lintas merek ──────
-      await _initHce();
+      final ok = await _initHce();
 
       if (mounted) {
         setState(() {
           isLoading = false;
           isCardLoaded = true;
-          isActive = true;
-          statusText = 'Kartu Aktif ✅\nTempelkan HP ke NFC Reader di Gate Gym';
+          isActive = ok;
+          if (ok) {
+            statusText = 'Kartu Aktif ✅\nTempelkan HP ke NFC Reader di Gate Gym';
+          }
         });
       }
     } catch (e) {
@@ -146,17 +148,17 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
     }
   }
 
-  Future<void> _initHce() async {
+  Future<bool> _initHce() async {
     try {
       final nfcState = await NfcHce.checkDeviceNfcState();
       if (nfcState != NfcState.enabled) {
         if (mounted) {
           setState(
             () => statusText =
-                'NFC tidak aktif.\nAktifkan NFC di Pengaturan terlebih dahulu.',
+                'NFC tidak aktif.\nAktifkan NFC di Pengaturan HP Anda.',
           );
         }
-        return;
+        return false;
       }
 
       await NfcHce.init(
@@ -171,8 +173,15 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
         _apduAdded = true;
         debugPrint('[HCE] APDU registered: $nfcPayload');
       }
+      return true;
     } catch (e) {
       debugPrint('[HCE] _initHce error: $e');
+      if (mounted) {
+        setState(
+          () => statusText = 'Gagal mengaktifkan NFC HCE: $e',
+        );
+      }
+      return false;
     }
   }
 
@@ -187,12 +196,14 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
       await NfcHce.removeApduResponse(_port);
       _apduAdded = false;
     }
-    await _initHce();
+    final ok = await _initHce();
 
     if (mounted) {
       setState(() {
-        isActive = true;
-        statusText = 'Kartu Aktif ✅\nTempelkan HP ke NFC Reader di Gate Gym';
+        isActive = ok;
+        if (ok) {
+          statusText = 'Kartu Aktif ✅\nTempelkan HP ke NFC Reader di Gate Gym';
+        }
       });
     }
   }

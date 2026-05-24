@@ -203,9 +203,39 @@ def read_hce_nfc_id(connection) -> dict:
     """
     try:
         # ── STEP 1: SELECT AID ─────────────────────────────────────────────
-        log.info(f"→ SELECT AID: {bytes_to_hex_str(SELECT_AID_APDU)}")
-        data, sw1, sw2 = connection.transmit(SELECT_AID_APDU)
-        log.info(f"← SELECT response: data={bytes_to_hex_str(data) if data else '(empty)'} SW={sw1:02X} {sw2:02X}")
+        aids_to_try = [
+            [0xF0, 0x00, 0xDA, 0xDA, 0xDA, 0xDA, 0xDA],
+            [0xA0, 0x00, 0xDA, 0xDA, 0xDA, 0xDA, 0xDA]
+        ]
+        data, sw1, sw2 = None, None, None
+        aid_selected = None
+
+        for aid in aids_to_try:
+            aid_hex = ' '.join(f'{b:02X}' for b in aid)
+            # Try without Le
+            apdu_no_le = [0x00, 0xA4, 0x04, 0x00, len(aid)] + aid
+            log.info(f"→ SELECT AID {aid_hex} (no Le): {bytes_to_hex_str(apdu_no_le)}")
+            try:
+                data, sw1, sw2 = connection.transmit(apdu_no_le)
+                log.info(f"← SELECT response: data={bytes_to_hex_str(data) if data else '(empty)'} SW={sw1:02X} {sw2:02X}")
+            except Exception as e:
+                log.warning(f"Transmit error for no Le: {e}")
+                sw1, sw2 = None, None
+
+            # If error (like SW=68 81 or None), try with Le
+            if sw1 is None or ((sw1 != 0x90 or sw2 != 0x00) and (sw1 != 0x6A or sw2 != 0x82)):
+                apdu_with_le = apdu_no_le + [0x00]
+                log.info(f"→ SELECT AID {aid_hex} (with Le): {bytes_to_hex_str(apdu_with_le)}")
+                try:
+                    data, sw1, sw2 = connection.transmit(apdu_with_le)
+                    log.info(f"← SELECT response: data={bytes_to_hex_str(data) if data else '(empty)'} SW={sw1:02X} {sw2:02X}")
+                except Exception as e:
+                    log.warning(f"Transmit error for with Le: {e}")
+                    sw1, sw2 = None, None
+
+            if sw1 == 0x90 and sw2 == 0x00:
+                aid_selected = aid
+                break
 
         if sw1 == 0x90 and sw2 == 0x00:
             # Jika SELECT langsung bawa data → decode sebagai nfc_id
