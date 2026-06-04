@@ -57,6 +57,7 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
             statusText =
                 'Kartu terkirim ke reader! ✅\nCheck-in dicatat oleh sistem.';
           });
+          _showSuccessSnackBar();
         }
       }
       return null;
@@ -111,6 +112,7 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
             statusText =
                 'Membership tidak aktif.\nSilakan beli paket terlebih dahulu.';
           });
+          _showFailureSnackBar('Membership tidak aktif. Silakan beli paket terlebih dahulu.');
           _showMembershipDialog();
         }
         return;
@@ -122,6 +124,7 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
             isLoading = false;
             statusText = 'Data kartu tidak ditemukan.\nHubungi admin gym.';
           });
+          _showFailureSnackBar('Data kartu NFC tidak ditemukan. Hubungi admin gym.');
         }
         return;
       }
@@ -148,6 +151,7 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
           isLoading = false;
           statusText = 'Gagal memuat kartu.\nPastikan koneksi internet aktif.';
         });
+        _showFailureSnackBar('Gagal memuat kartu. Pastikan koneksi internet aktif.');
       }
     }
   }
@@ -166,6 +170,7 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
           setState(() {
             statusText = 'NFC tidak aktif.\nAktifkan NFC di Pengaturan HP Anda.';
           });
+          _showFailureSnackBar('NFC tidak aktif. Aktifkan NFC di Pengaturan HP Anda.');
         }
         return false;
       }
@@ -203,6 +208,126 @@ class _CheckInNfcPageState extends State<CheckInNfcPage>
         });
       }
     }
+  }
+
+  // ── Notifikasi SnackBar ───────────────────────────────────────────────────
+
+  void _showSuccessSnackBar() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        backgroundColor: const Color(0xFF1B5E20),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: Colors.green.shade400.withOpacity(0.5), width: 1),
+        ),
+        duration: const Duration(seconds: 4),
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.shade400.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.greenAccent,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Check-in Berhasil! 🎉',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Kartu NFC berhasil terbaca oleh reader gym.',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFailureSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        backgroundColor: const Color(0xFF7F0000),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: Colors.red.shade400.withOpacity(0.5), width: 1),
+        ),
+        duration: const Duration(seconds: 5),
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade400.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_rounded,
+                color: Colors.redAccent,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Check-in Gagal ❌',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showMembershipDialog() {

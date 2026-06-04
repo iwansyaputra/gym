@@ -85,11 +85,13 @@ img {
 
 .section {
   padding: 100px 0;
+  scroll-margin-top: 80px;
 }
 
 .section-dark-alt {
   padding: 100px 0;
   background: var(--bg2);
+  scroll-margin-top: 80px;
 }
 
 /* ===== NAV ===== */
@@ -189,9 +191,9 @@ img {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 120px 24px 80px;
+  padding: 120px 24px 100px;
   position: relative;
-  overflow: hidden;
+  overflow: clip; /* clips orbs but doesn't create scroll container that clips transforms */
   background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0, 102, 255, 0.2) 0%, transparent 60%), var(--bg);
 }
 
@@ -233,6 +235,7 @@ img {
   grid-template-columns: 1fr 1fr;
   gap: 60px;
   align-items: center;
+  min-height: 0;
 }
 
 .hero-badge {
@@ -375,6 +378,7 @@ img {
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: visible;
 }
 
 .phone-glow {
@@ -640,16 +644,12 @@ img {
 .split-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 80px;
-  align-items: center;
+  gap: 64px;
+  align-items: start;
 }
 
-.split-layout.reverse {
-  direction: rtl;
-}
-
-.split-layout.reverse>* {
-  direction: ltr;
+.split-layout.reverse .split-visual {
+  order: -1;
 }
 
 .section-desc-left {
@@ -916,29 +916,61 @@ img {
 
 .payment-visual-wrap {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  min-height: 100%;
 }
 
-.payment-img {
-  max-height: 450px;
-  object-fit: contain;
-  margin: 0 auto;
-  filter: drop-shadow(0 20px 60px rgba(0, 102, 255, 0.25));
+/* Desktop: hide phone in payment section, card IS the visual */
+.payment-visual-wrap .hero-phone-img {
+  display: none;
 }
 
+/* Desktop: pay card is centered big visual */
 .payment-overlay {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80%;
+  position: static;
+  transform: none;
+  width: 100%;
+  max-width: 380px;
+}
+
+/* Make the split-visual in payment sticky so it stays visible while scrolling content */
+#payment .split-visual {
+  position: sticky;
+  top: 120px;
+  align-self: start;
 }
 
 .pay-card {
-  background: rgba(8, 13, 26, 0.92);
-  border: 1px solid rgba(0, 102, 255, 0.4);
-  border-radius: 16px;
-  padding: 20px;
-  backdrop-filter: blur(20px);
+  background: linear-gradient(135deg, rgba(8, 13, 26, 0.95), rgba(15, 25, 50, 0.95));
+  border: 1px solid rgba(0, 102, 255, 0.35);
+  border-radius: 20px;
+  padding: 28px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 255, 0.06),
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 60px rgba(0, 102, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.pay-card::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(0, 102, 255, 0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .pay-card-header {
@@ -947,7 +979,7 @@ img {
   gap: 8px;
   font-size: 13px;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 }
 
 .pay-status-dot {
@@ -960,9 +992,13 @@ img {
 
 .pay-amount {
   font-family: 'Outfit', sans-serif;
-  font-size: 26px;
-  font-weight: 800;
-  margin-bottom: 4px;
+  font-size: 36px;
+  font-weight: 900;
+  margin-bottom: 6px;
+  background: var(--grad-main);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .pay-channel {
@@ -1085,6 +1121,7 @@ img {
 /* ===== CTA SECTION ===== */
 .section-cta {
   padding: 120px 24px;
+  scroll-margin-top: 80px;
   background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(0, 102, 255, 0.15) 0%, transparent 70%), var(--bg2);
   position: relative;
   overflow: hidden;
@@ -1324,8 +1361,15 @@ img {
   .split-layout,
   .split-layout.reverse {
     grid-template-columns: 1fr;
-    direction: ltr;
     gap: 40px;
+  }
+
+  .split-layout.reverse .split-visual {
+    order: unset;
+  }
+
+  #payment .split-visual {
+    position: static;
   }
 
   .arch-grid {
@@ -1351,20 +1395,19 @@ img {
     gap: 12px;
   }
 
-  .payment-visual-wrap {
-    min-height: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
+  /* Payment: show phone on mobile since there's no phone/card overlap issue */
+  .payment-visual-wrap .hero-phone-img {
+    display: block;
+    max-width: 220px;
   }
 
   .payment-overlay {
-    position: static;
-    transform: none;
+    max-width: 300px;
     width: 100%;
-    max-width: 320px;
-    margin: 0 auto;
+  }
+
+  .pay-amount {
+    font-size: 26px;
   }
 
   .section-cta {
@@ -1425,7 +1468,7 @@ img {
 .hero-phone-img {
   position: relative;
   z-index: 1;
-  max-width: 320px;
+  max-width: 300px;
   width: 100%;
   height: auto;
   object-fit: contain;
@@ -1440,7 +1483,7 @@ img {
 .desktop-visual-wrap, .desktop-preview-wrap {
   position: relative;
   width: 100%;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto 40px;
   display: flex;
   justify-content: center;
@@ -1449,9 +1492,9 @@ img {
 .desktop-img {
   width: 100%;
   height: auto;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 40px rgba(0,102,255,0.2);
-  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55), 0 0 60px rgba(0,102,255,0.2);
+  border: 1px solid rgba(255,255,255,0.12);
   display: block;
 }
 
@@ -1503,13 +1546,3 @@ img {
 
 .autopoll-badge { display: inline-flex; align-items: center; gap: 10px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); padding: 10px 18px; border-radius: 100px; font-size: 13px; color: var(--green); }
 .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; flex-shrink: 0; }
-
-.pay-card { background: rgba(15,23,42,0.85); border: 1px solid rgba(0,212,255,0.4); border-radius: 16px; padding: 20px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 30px rgba(0,102,255,0.15); }
-.pay-card-header { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
-.pay-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); animation: pulse 1.5s infinite; transition: background 0.3s; }
-.pay-amount { font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 4px; color: #fff; }
-.pay-channel { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
-.pay-progress { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
-.pay-progress-bar { height: 100%; width: 0%; background: var(--grad-main); border-radius: 2px; animation: progressAnim 5s ease-in-out infinite; }
-@keyframes progressAnim { 0% { width: 0%; } 80% { width: 100%; } 100% { width: 100%; } }
-.pay-note { font-size: 11px; color: var(--text-muted); transition: color 0.3s; }
