@@ -37,7 +37,14 @@ class AuthManager {
     getUser() {
         const userData = localStorage.getItem(API_CONFIG.STORAGE_KEYS.USER) ||
             sessionStorage.getItem(API_CONFIG.STORAGE_KEYS.USER);
-        return userData ? JSON.parse(userData) : null;
+        if (!userData) return null;
+        try {
+            return JSON.parse(userData);
+        } catch (error) {
+            localStorage.removeItem(API_CONFIG.STORAGE_KEYS.USER);
+            sessionStorage.removeItem(API_CONFIG.STORAGE_KEYS.USER);
+            return null;
+        }
     }
 
     // Check if user is authenticated
@@ -110,22 +117,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Setup menu toggle for mobile
-    const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebar');
-    if (menuToggle && sidebar) {
-        menuToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-        });
-
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768) {
-                if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
-                    sidebar.classList.remove('active');
-                }
-            }
-        });
-    }
+    document.addEventListener('click', (e) => {
+        const menuToggle = document.getElementById('menuToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (window.innerWidth <= 768 && sidebar && menuToggle && !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+            sidebar.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
 });
 
 // Export for use in other files
