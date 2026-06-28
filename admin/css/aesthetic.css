@@ -457,3 +457,86 @@ html[data-theme="dark"] .topbar-badge {
     padding-right: 10px;
   }
 }
+
+/* ── Sidebar footer status ──────────────────────────────────── */
+.sidebar-footer-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin: 4px 0 8px;
+  font-size: .7rem;
+  color: var(--text-3);
+  border-top: 1px solid var(--border);
+}
+.sidebar-footer-status .status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+}
+
+/* ── Table row clickable hint ───────────────────────────────── */
+.data-table tbody tr[data-href] {
+  cursor: pointer;
+}
+
+/* ── Card glass effect enhancement ──────────────────────────── */
+.card, .stat-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ── Smooth modal backdrop animation ────────────────────────── */
+.modal-overlay.active {
+  animation: overlay-in .2s ease;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Success overlay matching modal animation ───────────────── */
+.success-overlay.active {
+  animation: overlay-in .2s ease;
+}
+
+/* ── Improved focus for all interactive elements ────────────── */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--brand-1);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* ── Selected row highlight ─────────────────────────────────── */
+.data-table tbody tr.selected {
+  background: rgba(99,102,241,.12) !important;
+  border-left: 3px solid var(--brand-1);
+}
+
+/* ── Badge pulse for live indicator ──────────────────────────── */
+.badge-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .65rem;
+  font-weight: 700;
+  color: #22c55e;
+  background: rgba(34,197,94,0.1);
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.badge-live::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse-live 1.5s infinite;
+}

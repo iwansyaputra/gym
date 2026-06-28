@@ -3,6 +3,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check authentication
     if (!auth.requireAuth()) return;
 
+    // Live clock
+    function updateClock() {
+        const el = document.getElementById('liveClock');
+        if (el) {
+            const now = new Date();
+            el.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
     // Initialize charts first (empty), then load data
     initializeCharts();
     setupEventListeners();
@@ -43,6 +54,12 @@ async function loadDashboardData() {
         updateCheckinChart(checkins);
         updateRevenueChart(transactions);
         renderRecentActivity(checkins, transactions);
+
+        // Last updated timestamp
+        const lastUpd = document.getElementById('lastUpdated');
+        if (lastUpd) {
+            lastUpd.textContent = 'Terakhir: ' + new Date().toLocaleTimeString('id-ID');
+        }
 
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -126,16 +143,40 @@ function calculateStats(transactions, users, checkins) {
 // ===== UPDATE STAT CARDS =====
 function updateStatCards(stats) {
     const totalMembersEl = document.getElementById('totalMembers');
-    if (totalMembersEl) animateValue(totalMembersEl, 0, stats.totalMembers, 1000);
+    if (totalMembersEl) {
+        if (typeof animateCounter === 'function') {
+            animateCounter(totalMembersEl, stats.totalMembers, 800);
+        } else {
+            totalMembersEl.textContent = stats.totalMembers.toLocaleString('id-ID');
+        }
+    }
 
     const todayCheckinsEl = document.getElementById('todayCheckins');
-    if (todayCheckinsEl) animateValue(todayCheckinsEl, 0, stats.todayCheckins, 1000);
+    if (todayCheckinsEl) {
+        if (typeof animateCounter === 'function') {
+            animateCounter(todayCheckinsEl, stats.todayCheckins, 800);
+        } else {
+            todayCheckinsEl.textContent = stats.todayCheckins.toLocaleString('id-ID');
+        }
+    }
 
     const monthlyRevenueEl = document.getElementById('monthlyRevenue');
-    if (monthlyRevenueEl) monthlyRevenueEl.textContent = formatCurrency(stats.monthlyRevenue);
+    if (monthlyRevenueEl) {
+        if (typeof animateCounter === 'function') {
+            animateCounter(monthlyRevenueEl, 'Rp ' + stats.monthlyRevenue, 1000);
+        } else {
+            monthlyRevenueEl.textContent = formatCurrency(stats.monthlyRevenue);
+        }
+    }
 
     const expiringMembersEl = document.getElementById('expiringMembers');
-    if (expiringMembersEl) animateValue(expiringMembersEl, 0, stats.expiringMembers, 1000);
+    if (expiringMembersEl) {
+        if (typeof animateCounter === 'function') {
+            animateCounter(expiringMembersEl, stats.expiringMembers, 800);
+        } else {
+            expiringMembersEl.textContent = stats.expiringMembers.toLocaleString('id-ID');
+        }
+    }
 
     // Growth indicators (dari data real)
     const memberGrowthEl = document.getElementById('memberGrowth');
@@ -149,22 +190,6 @@ function updateStatCards(stats) {
         const sign = stats.revenueGrowthPct >= 0 ? '+' : '';
         revenueGrowthEl.textContent = `${sign}${stats.revenueGrowthPct}%`;
     }
-}
-
-// ===== ANIMATE NUMBER =====
-function animateValue(element, start, end, duration) {
-    const range = end - start;
-    const increment = range / (duration / 16);
-    let current = start;
-
-    const timer = setInterval(() => {
-        current += increment;
-        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
-            current = end;
-            clearInterval(timer);
-        }
-        element.textContent = Math.floor(current);
-    }, 16);
 }
 
 // ===== CHART CHECK-IN (dari data checkins real) =====

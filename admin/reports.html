@@ -32,6 +32,11 @@
   </header>
 
   <div class="content-area">
+    <div class="breadcrumb">
+      <a href="dashboard.html">Dashboard</a>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-current">Laporan</span>
+    </div>
     <div class="page-header">
       <div class="page-header-left">
         <h1>Laporan</h1>
@@ -60,7 +65,7 @@
               <option value="year">Tahun Ini</option>
               <option value="custom">Custom</option>
             </select>
-            <div id="customDateRange" style="display:none;display:flex;gap:8px;align-items:center;">
+            <div id="customDateRange" style="display:none;gap:8px;align-items:center;">
               <input type="date" id="financialStartDate" class="form-control" style="width:auto;">
               <span style="color:var(--text-3);">—</span>
               <input type="date" id="financialEndDate" class="form-control" style="width:auto;">

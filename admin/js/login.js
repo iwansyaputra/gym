@@ -98,6 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             errorMessage.style.animation = '';
         }, 500);
+
+        // Also show toast
+        if (typeof showToast === 'function') {
+            showToast(message, 'error', 5000);
+        }
     }
 
     // Helper function to set loading state

@@ -108,11 +108,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Display admin name if element exists
-    const adminNameElements = document.querySelectorAll('#adminName');
-    if (adminNameElements.length > 0 && auth.user) {
-        adminNameElements.forEach(el => {
-            el.textContent = auth.user.name || auth.user.email || 'Admin';
+    // Display admin name and avatar if element exists
+    if (auth.user) {
+        const displayName = auth.user.name || auth.user.email || 'Admin';
+        const initial = displayName.charAt(0).toUpperCase();
+
+        document.querySelectorAll('#adminName').forEach(el => {
+            el.textContent = displayName;
+        });
+
+        document.querySelectorAll('#sidebarAvatar, #topbarAvatar').forEach(el => {
+            el.textContent = initial;
         });
     }
 

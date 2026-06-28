@@ -18,6 +18,19 @@ function renderSidebar() {
     { href: 'reports.html', icon: 'M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM9 17H7V10H9V17ZM13 17H11V7H13V17ZM17 17H15V13H17V17Z', text: 'Laporan' }
   ];
 
+  // Try to get user info from storage for sidebar
+  let userName = 'Admin';
+  let userInitial = 'A';
+  try {
+    const stored =
+      JSON.parse(localStorage.getItem('admin_user') || 'null') ||
+      JSON.parse(sessionStorage.getItem('admin_user') || 'null');
+    if (stored) {
+      userName = stored.name || stored.email || 'Admin';
+      userInitial = userName.charAt(0).toUpperCase();
+    }
+  } catch (e) { /* ignore */ }
+
   let navItemsHtml = '';
   menuItems.forEach(item => {
     const isActive = (currentPage === item.href) || (currentPage === '' && item.href === 'dashboard.html') ? 'active' : '';
@@ -41,11 +54,15 @@ function renderSidebar() {
   </nav>
   <div class="sidebar-footer">
     <div class="sidebar-user">
-      <div class="sidebar-user-avatar" id="sidebarAvatar">A</div>
+      <div class="sidebar-user-avatar" id="sidebarAvatar">${userInitial}</div>
       <div class="sidebar-user-info">
-        <div class="sidebar-user-name" id="adminName">Admin</div>
+        <div class="sidebar-user-name" id="adminName">${userName}</div>
         <div class="sidebar-user-role">Administrator</div>
       </div>
+    </div>
+    <div class="sidebar-footer-status">
+      <span class="status-dot"></span>
+      Sistem Terhubung
     </div>
     <button class="btn-logout" id="logoutBtn">
       <svg viewBox="0 0 24 24" fill="none"><path d="M17 7L15.59 8.41 18.17 11H8V13H18.17L15.59 15.59 17 17 22 12 17 7ZM4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z" fill="currentColor"/></svg>Keluar
@@ -154,6 +171,82 @@ function renderSidebar() {
     });
   }
 }
+
+// ── Toast Notification System ─────────────────────────────────
+function showToast(message, type = 'info', duration = 4000) {
+  const container = document.getElementById('toastContainer') || (() => {
+    const c = document.createElement('div');
+    c.id = 'toastContainer';
+    c.className = 'toast-container';
+    document.body.appendChild(c);
+    return c;
+  })();
+
+  const icons = {
+    success: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none"><path d="M9 16.17L4.83 12 3.41 13.41 9 19 21 7 19.59 5.59 9 16.17Z" fill="currentColor"/></svg>',
+    error: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z" fill="currentColor"/></svg>',
+    warning: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/></svg>',
+    info: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/></svg>'
+  };
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    ${icons[type] || icons.info}
+    <span class="toast-message">${message}</span>
+    <button class="toast-close" onclick="this.closest('.toast').classList.add('toast-exit');setTimeout(()=>this.closest('.toast').remove(),300)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z" fill="currentColor"/></svg>
+    </button>
+  `;
+  container.appendChild(toast);
+
+  if (duration > 0) {
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.classList.add('toast-exit');
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 300);
+      }
+    }, duration);
+  }
+}
+
+// ── Animated Counter ──────────────────────────────────────────
+function animateCounter(el, target, duration = 800, prefix = '', suffix = '') {
+  if (!el) return;
+  const start = performance.now();
+  const isCurrency = typeof target === 'string' && target.includes('Rp');
+  const numTarget = isCurrency ? parseInt(target.replace(/[^\d]/g, '')) || 0 : parseInt(target) || 0;
+
+  function update(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(eased * numTarget);
+
+    if (isCurrency) {
+      el.textContent = prefix + 'Rp ' + current.toLocaleString('id-ID') + suffix;
+    } else {
+      el.textContent = prefix + current.toLocaleString('id-ID') + suffix;
+    }
+
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    } else {
+      el.textContent = prefix + (isCurrency ? 'Rp ' : '') + numTarget.toLocaleString('id-ID') + suffix;
+    }
+  }
+  requestAnimationFrame(update);
+}
+
+// ── Escape key closes all modals ─────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active, .success-overlay.active').forEach(el => {
+      el.classList.remove('active');
+      el.style.display = 'none';
+    });
+  }
+});
 
 // Execute immediately
 renderSidebar();

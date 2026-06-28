@@ -712,6 +712,7 @@ img {
 }
 
 .flow-step {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -740,9 +741,9 @@ img {
   width: 1px;
   height: 32px;
   background: linear-gradient(to bottom, rgba(0, 102, 255, 0.5), transparent);
-  margin-left: 5px;
+  left: 5.5px;
   position: absolute;
-  margin-top: 28px;
+  top: 28px;
 }
 
 .flow-step span {
@@ -1522,27 +1523,114 @@ img {
   transform: translateY(-1px);
 }
 
-/* ===== RESTORED MISSING STYLES ===== */
-/* ===== NFC SECTION ===== */
-.nfc-flow { display: flex; flex-direction: column; gap: 4px; }
-.flow-step { display: flex; align-items: center; gap: 14px; }
-.flow-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.2); flex-shrink: 0; }
-.dot-active { background: var(--blue2); box-shadow: 0 0 12px var(--blue2); animation: pulse 2s infinite; }
-.dot-end { background: var(--green); box-shadow: 0 0 12px var(--green); }
-.flow-line { width: 1px; height: 32px; background: linear-gradient(to bottom, rgba(0,102,255,0.5), transparent); margin-left: 5px; position: absolute; margin-top: 28px; }
-.flow-step span { font-size: 13px; color: var(--text-muted); padding: 6px 0; }
+/* ── Scroll back to top ─────────────────────────────────────── */
+.scroll-top {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--grad-main);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-blue);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s;
+  z-index: 999;
+}
+.scroll-top.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.scroll-top:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 40px rgba(0,102,255,0.5);
+}
 
-.feature-list { display: flex; flex-direction: column; gap: 20px; }
-.feat-li { display: flex; gap: 16px; align-items: flex-start; }
-.feat-li-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
-.feat-li strong { display: block; font-size: 15px; margin-bottom: 4px; }
-.feat-li p { font-size: 13px; color: var(--text-muted); }
+/* ── Light mode pay-card ────────────────────────────────────── */
+html[data-theme="light"] .pay-card {
+  background: rgba(255,255,255,0.95);
+  border-color: rgba(0,86,214,0.3);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08), 0 0 30px rgba(0,102,255,0.08);
+}
+html[data-theme="light"] .pay-amount { color: #0f172a; }
 
-/* ===== PAYMENT SECTION ===== */
-.payment-channels { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-.channel-row { display: flex; gap: 10px; }
-.channel-item { flex: 1; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 13px; text-align: center; transition: border-color 0.2s, background 0.2s; }
-.channel-item:hover { border-color: rgba(0,102,255,0.4); background: rgba(0,102,255,0.08); }
+/* ── Smooth scroll offset for fixed navbar ──────────────────── */
+section[id] {
+  scroll-margin-top: 80px;
+}
 
-.autopoll-badge { display: inline-flex; align-items: center; gap: 10px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); padding: 10px 18px; border-radius: 100px; font-size: 13px; color: var(--green); }
-.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; flex-shrink: 0; }
+/* ── Better focus ring ──────────────────────────────────────── */
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--blue1);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Hero entrance animation ────────────────────────────────── */
+.hero-content {
+  animation: hero-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Platform badge stagger animation ───────────────────────── */
+.platforms-row .platform-badge {
+  opacity: 0;
+  animation: fade-up 0.5s ease forwards;
+}
+.platforms-row .platform-badge:nth-child(1) { animation-delay: 0.1s; }
+.platforms-row .platform-badge:nth-child(2) { animation-delay: 0.15s; }
+.platforms-row .platform-badge:nth-child(3) { animation-delay: 0.2s; }
+.platforms-row .platform-badge:nth-child(4) { animation-delay: 0.25s; }
+.platforms-row .platform-badge:nth-child(5) { animation-delay: 0.3s; }
+.platforms-row .platform-badge:nth-child(6) { animation-delay: 0.35s; }
+.platforms-row .platform-badge:nth-child(7) { animation-delay: 0.4s; }
+.platforms-row .platform-badge:nth-child(8) { animation-delay: 0.45s; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Gradient overlay on hero background ────────────────────── */
+#hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 60%, var(--bg));
+  pointer-events: none;
+}
+
+/* ── Smooth scrollbar ───────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: rgba(0,102,255,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,102,255,0.5); }
+
+/* ── Light mode: adjust channel hover ───────────────────────── */
+html[data-theme="light"] .channel-item:hover {
+  background: rgba(0,86,214,0.06);
+}
+
+/* ── Light mode: navbar shadow ──────────────────────────────── */
+html[data-theme="light"] #navbar.scrolled {
+  box-shadow: 0 4px 30px rgba(15,23,42,0.08);
+}
+
+/* ── Hero phone glow ────────────────────────────────────────── */
+.hero-phone-img {
+  transition: box-shadow 0.3s;
+}
+.hero-phone-img:hover {
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 80px rgba(0,102,255,0.25);
+}
