@@ -887,50 +887,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         const avgs = totals.map((t, i) => (counts[i] > 0 ? t / counts[i] : 0));
 
-        // Ranking klaster dari paling rajin (avg tertinggi) ke paling jarang
+        // Ranking klaster dari avg tertinggi ke terendah.
+        // Jika rata-rata sama (misal 0), klaster dengan jumlah member lebih sedikit didahulukan.
+        // Ini memastikan klaster kosong di-rank sebagai 'Sering' (Rank 1) dan klaster berisi data 0 check-in di-rank sebagai 'Jarang' (Rank 2).
         const rankOrder = avgs
             .map((avg, ci) => ({ ci, avg, count: counts[ci] }))
-            .sort((a, b) => b.avg - a.avg);
+            .sort((a, b) => {
+                if (b.avg !== a.avg) {
+                    return b.avg - a.avg;
+                }
+                return a.count - b.count;
+            });
 
-        // Filter hanya klaster yang aktif (memiliki member)
-        const activeRanks = rankOrder.filter(r => r.count > 0);
-        const totalActive = activeRanks.length;
-
-        // Pilihan nama kategori sesuai jumlah K
-        let categoryNames = ['Rajin', 'Sedang', 'Jarang', 'Sangat Jarang'];
-        if (k === 2) {
-            categoryNames = ['Rajin', 'Jarang'];
-        } else if (k === 3) {
-            categoryNames = ['Rajin', 'Sedang', 'Jarang'];
-        }
-
+        // 3 Kategori tetap: Rajin (Rank 0), Sering (Rank 1), Jarang (Rank 2)
+        const categoryNames = ['Rajin', 'Sering', 'Jarang'];
         const labelMap = {}; // ci → { label, colorIdx }
-        rankOrder.forEach((item) => {
+
+        rankOrder.forEach((item, rank) => {
             const ci = item.ci;
             const avg = item.avg;
             const count = item.count;
 
-            let label = '';
-            if (count === 0 || avg === 0) {
-                // Jika klaster kosong ATAU rata-rata check-in nya 0, harus selalu kategori terendah
-                label = categoryNames[categoryNames.length - 1];
-            } else {
-                const activeIndex = activeRanks.findIndex(r => r.ci === ci);
-                if (activeIndex === 0) {
-                    label = categoryNames[0]; // Paling tinggi/rajin
-                } else if (activeIndex === totalActive - 1) {
-                    label = categoryNames[categoryNames.length - 1]; // Paling rendah/jarang
-                } else {
-                    label = 'Sedang';
-                }
-            }
+            // Dapatkan label berdasarkan rank urutannya (0, 1, 2)
+            const label = categoryNames[Math.min(rank, categoryNames.length - 1)];
 
             // Petakan warna dengan konsisten berdasarkan label
             let colorIdx = 0;
-            if (label === 'Rajin') colorIdx = 0; // Hijau
-            else if (label === 'Sedang') colorIdx = 1; // Biru
-            else if (label === 'Jarang') colorIdx = 2; // Kuning/Orange
-            else if (label === 'Sangat Jarang') colorIdx = 3; // Merah
+            if (label === 'Rajin') colorIdx = 0;      // Hijau
+            else if (label === 'Sering') colorIdx = 1;     // Biru
+            else if (label === 'Jarang') colorIdx = 2;     // Kuning/Orange
 
             labelMap[ci] = {
                 label:      label,
