@@ -30,12 +30,27 @@ const getAllUsers = async (req, res) => {
             WHERE u.role = 'user'
         `;
 
+        let countQuery = `
+            SELECT COUNT(*) as total 
+            FROM users u 
+            LEFT JOIN (
+                SELECT user_id, paket, tanggal_berakhir, status
+                FROM memberships
+                WHERE id IN (SELECT MAX(id) FROM memberships GROUP BY user_id)
+            ) m ON u.id = m.user_id
+            WHERE u.role = 'user'
+        `;
+
         const params = [];
+        const countParams = [];
 
         // Filter by search
         if (search) {
-            query += ` AND (u.nama LIKE ? OR u.email LIKE ? OR u.hp LIKE ?)`;
+            const searchFilter = ` AND (u.nama LIKE ? OR u.email LIKE ? OR u.hp LIKE ?)`;
+            query += searchFilter;
+            countQuery += searchFilter;
             params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+            countParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
         }
 
         // Filter by status/reportType
@@ -44,31 +59,45 @@ const getAllUsers = async (req, res) => {
 
         if (filterType && filterType !== 'all' && filterType !== 'overview') {
             if (filterType === 'active') {
-                query += ` AND m.status = 'active' AND m.tanggal_berakhir >= ?`;
+                const activeFilter = ` AND m.status = 'active' AND m.tanggal_berakhir >= ?`;
+                query += activeFilter;
+                countQuery += activeFilter;
                 params.push(now);
+                countParams.push(now);
             } else if (filterType === 'expired') {
-                query += ` AND (m.status = 'expired' OR m.tanggal_berakhir < ?)`;
+                const expiredFilter = ` AND (m.status = 'expired' OR m.tanggal_berakhir < ?)`;
+                query += expiredFilter;
+                countQuery += expiredFilter;
                 params.push(now);
+                countParams.push(now);
             } else if (filterType === 'expiring') {
-                query += ` AND m.status = 'active' AND m.tanggal_berakhir BETWEEN ? AND DATE_ADD(?, INTERVAL 7 DAY)`;
+                const expiringFilter = ` AND m.status = 'active' AND m.tanggal_berakhir BETWEEN ? AND DATE_ADD(?, INTERVAL 7 DAY)`;
+                query += expiringFilter;
+                countQuery += expiringFilter;
                 params.push(now, now);
+                countParams.push(now, now);
             } else if (filterType === 'pending') {
-                query += ` AND m.status = 'pending'`;
-            } else if (filterType === 'new') {
-                // 'new' usually implies created recently, controlled by period
+                const pendingFilter = ` AND m.status = 'pending'`;
+                query += pendingFilter;
+                countQuery += pendingFilter;
             }
         }
 
         // Filter by period (for creation date)
         if (period && period !== 'all') {
+            let periodFilter = '';
             if (period === 'today') {
-                query += ` AND DATE(u.created_at) = CURDATE()`;
+                periodFilter = ` AND DATE(u.created_at) = CURDATE()`;
             } else if (period === 'week') {
-                query += ` AND u.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`;
+                periodFilter = ` AND YEARWEEK(u.created_at) = YEARWEEK(CURDATE())`;
             } else if (period === 'month') {
-                query += ` AND u.created_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)`;
+                periodFilter = ` AND MONTH(u.created_at) = MONTH(CURDATE()) AND YEAR(u.created_at) = YEAR(CURDATE())`;
             } else if (period === 'year') {
-                query += ` AND u.created_at >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)`;
+                periodFilter = ` AND YEAR(u.created_at) = YEAR(CURDATE())`;
+            }
+            if (periodFilter) {
+                query += periodFilter;
+                countQuery += periodFilter;
             }
         }
 
@@ -79,16 +108,6 @@ const getAllUsers = async (req, res) => {
         params.push(queryLimit, parseInt(offset));
 
         const [users] = await pool.query(query, params);
-
-        // Get total count
-        let countQuery = `SELECT COUNT(*) as total FROM users u WHERE u.role = 'user'`;
-        const countParams = [];
-
-        if (search) {
-            countQuery += ` AND (u.nama LIKE ? OR u.email LIKE ? OR u.hp LIKE ?)`;
-            countParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
-        }
-
         const [countResult] = await pool.query(countQuery, countParams);
         const total = countResult[0]?.total || 0;
 

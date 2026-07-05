@@ -315,7 +315,7 @@ img { display: block; max-width: 100%; }
 }
 
 .sidebar-user-info { flex: 1; min-width: 0; }
-.sidebar-user-name { font-size: .875rem; font-weight: 600; color: var(--text-1); truncate: ellipsis; white-space: nowrap; overflow: hidden; }
+.sidebar-user-name { font-size: .875rem; font-weight: 600; color: var(--text-1); text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
 .sidebar-user-role { font-size: .7rem; color: var(--text-3); }
 
 .btn-logout {

@@ -540,3 +540,351 @@ textarea:focus-visible {
   background: #22c55e;
   animation: pulse-live 1.5s infinite;
 }
+
+/* ── Utility Classes ──────────────────────────────────────────── */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+.flex-shrink-0 { flex-shrink: 0; }
+.gap-4 { gap: 4px; }
+.gap-6 { gap: 6px; }
+.gap-8 { gap: 8px; }
+.gap-10 { gap: 10px; }
+.gap-12 { gap: 12px; }
+.gap-14 { gap: 14px; }
+.gap-16 { gap: 16px; }
+.gap-18 { gap: 18px; }
+.gap-24 { gap: 24px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.w-full { width: 100%; }
+.w-auto { width: auto; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-4 { margin-top: 4px; }
+.mt-6 { margin-top: 6px; }
+.mt-8 { margin-top: 8px; }
+.mt-14 { margin-top: 14px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-20 { margin-top: 20px; }
+.mb-4 { margin-bottom: 4px; }
+.mb-6 { margin-bottom: 6px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-10 { margin-bottom: 10px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-14 { margin-bottom: 14px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-18 { margin-bottom: 18px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+.p-0 { padding: 0; }
+.p-12 { padding: 12px; }
+.p-16 { padding: 16px; }
+.p-18 { padding: 18px; }
+.p-20 { padding: 20px; }
+.p-24 { padding: 24px; }
+.px-10 { padding-left: 10px; padding-right: 10px; }
+.px-12 { padding-left: 12px; padding-right: 12px; }
+.px-16 { padding-left: 16px; padding-right: 16px; }
+.py-8 { padding-top: 8px; padding-bottom: 8px; }
+.py-12 { padding-top: 12px; padding-bottom: 12px; }
+.py-16 { padding-top: 16px; padding-bottom: 16px; }
+.items-start { align-items: flex-start; }
+.items-center { align-items: center; }
+.items-stretch { align-items: stretch; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.justify-end { justify-content: flex-end; }
+
+/* ── Card Compact (for summary/stat cards with less padding) ─── */
+.stat-card-compact {
+  padding: 16px;
+}
+.stat-card-compact .stat-icon {
+  width: 36px; height: 36px;
+}
+.stat-card-compact .stat-value {
+  font-size: 1.4rem;
+}
+
+/* ── Stat card mini (for inline stats, horizontal layout) ────── */
+.stat-card-horizontal {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  min-width: auto;
+  padding: 12px 18px;
+}
+.stat-card-horizontal .stat-icon {
+  width: 36px; height: 36px;
+}
+.stat-card-horizontal .stat-value {
+  font-size: 1.3rem;
+}
+
+/* ── Check-in page: scanner + history flex layout ────────────── */
+.checkin-scanner-col {
+  flex: 0 0 340px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.checkin-history-col {
+  flex: 1 1 400px;
+}
+@media (max-width: 768px) {
+  .checkin-scanner-col { flex: 1 1 100%; min-width: 0; }
+  .checkin-history-col { flex: 1 1 100%; }
+}
+
+/* ── Check-in layout wrapper ─────────────────────────────────── */
+.checkin-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* ── NFC Bridge Indicator ────────────────────────────────────── */
+.nfc-bridge-indicator {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  margin-top: 4px;
+}
+.nfc-bridge-indicator .bridge-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.nfc-bridge-indicator .bridge-label {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* ── NFC Modal: header status bar ────────────────────────────── */
+.nfc-modal-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+.nfc-status-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.nfc-status-label {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* ── NFC member preview card ─────────────────────────────────── */
+.nfc-member-preview {
+  display: none;
+  padding: 12px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+.nfc-preview-label {
+  font-size: .75rem;
+  color: var(--text-3);
+}
+.nfc-preview-value {
+  font-size: .9rem;
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+/* ── NFC Info card ───────────────────────────────────────────── */
+.nfc-info-card {
+  padding: 10px 12px;
+  background: rgba(99,102,241,.08);
+  border-radius: var(--r-md);
+  border: 1px solid rgba(99,102,241,.15);
+  margin-bottom: 14px;
+}
+.nfc-info-text {
+  font-size: .82rem;
+  color: var(--text-2);
+  margin: 0;
+}
+
+/* ── NFC Step containers ─────────────────────────────────────── */
+.nfc-step-center {
+  display: none;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* ── Wallet Stats Grid ───────────────────────────────────────── */
+.wallet-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.wallet-stat-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 20px;
+}
+.wallet-stat-label {
+  font-size: .75rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 6px;
+}
+.wallet-stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-1);
+}
+.wallet-stat-value.green { color: var(--success); }
+
+/* ── Custom tab group (Topup page) ───────────────────────────── */
+.tab-group-custom {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border-radius: var(--r-lg);
+  padding: 4px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.tab-group-custom .tab-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-2);
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--t);
+}
+.tab-group-custom .tab-btn.active {
+  background: var(--surface-3);
+  color: var(--text-1);
+  box-shadow: var(--shadow-sm);
+}
+.tab-group-custom .tab-btn:hover:not(.active) { color: var(--text-1); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Amount Preset Buttons ───────────────────────────────────── */
+.amount-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.preset-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-2);
+  font-size: .82rem;
+  cursor: pointer;
+  transition: all var(--t);
+}
+.preset-btn:hover,
+.preset-btn.selected {
+  border-color: var(--brand-1);
+  color: var(--brand-1);
+  background: rgba(99,102,241,.1);
+}
+
+/* ── Saldo Info Box ──────────────────────────────────────────── */
+.saldo-info-box {
+  display: none;
+  padding: 12px;
+  background: rgba(99,102,241,.08);
+  border-radius: var(--r-md);
+  border: 1px solid rgba(99,102,241,.2);
+  margin-bottom: 14px;
+}
+.saldo-info-label {
+  font-size: .75rem;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+.saldo-info-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--brand-1);
+}
+
+/* ── Active Promo Banner ─────────────────────────────────────── */
+.active-promo-banner {
+  display: none;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  background: rgba(99,102,241,.1);
+  border: 1px solid rgba(99,102,241,.25);
+  border-radius: var(--r-md);
+  font-size: .875rem;
+  color: #a5b4fc;
+}
+
+/* ── Filter Card (Report page) ───────────────────────────────── */
+.filter-card {
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.filter-card .toolbar {
+  margin: 0;
+}
+
+/* ── K-Means Empty State Card ────────────────────────────────── */
+.kmeans-empty-card {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+/* ── Export Modal description ────────────────────────────────── */
+.export-desc {
+  font-size: .85rem;
+  color: var(--text-3);
+}
+
+/* ── Table row: last cell border radius ───────────────────────── */
+.data-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--r-lg);
+}
+.data-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--r-lg);
+}
+
+/* ── Stat card 4-column grid for compact stats ───────────────── */
+.stats-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+@media (max-width: 768px) {
+  .stats-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .stats-grid-4 { grid-template-columns: 1fr; }
+}

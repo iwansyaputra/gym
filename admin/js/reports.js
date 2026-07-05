@@ -4,23 +4,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let financialChart, packageChart, memberGrowthChart, genderChart;
     let allTransactions = [];
-    let allMembers = [];
+    let allMembers = []; // semua member (untuk summary box)
 
     // Initialize
     setupTabs();
     setupEventListeners();
     initializeCharts();
 
-    // Auto-load data on page open (sama seperti transactions.js)
+    // Auto-load data sesuai period yang dipilih di UI
     await loadFinancialData();
     await loadMemberData();
 
     // === AUTO-LOAD FUNCTIONS ===
 
+    // Muat data keuangan sesuai period yang aktif di dropdown
     async function loadFinancialData() {
+        const periodEl = document.getElementById('financialPeriod');
+        const period = periodEl ? periodEl.value : 'month';
+        let startDate, endDate;
+        if (period === 'custom') {
+            startDate = document.getElementById('financialStartDate')?.value;
+            endDate   = document.getElementById('financialEndDate')?.value;
+        }
         try {
-            const response = await api.getAllTransactions();
-
+            const response = await api.getAllTransactions({ period, startDate, endDate });
             if (response.success && response.data) {
                 allTransactions = response.data;
                 updateFinancialSummary(allTransactions);
@@ -34,20 +41,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Muat SEMUA member (tanpa filter status/period) untuk summary box
+    // lalu tampilkan tabel sesuai filter default
     async function loadMemberData() {
         try {
-            const response = await api.getAllUsers();
-
-            if (response.success && response.data) {
-                allMembers = response.data;
-                updateMemberSummary(allMembers);
-                updateMemberGrowthChart(allMembers);
-                updateGenderChart(allMembers);
-                updateMemberTable(allMembers);
+            // Ambil semua member untuk summary global
+            const allResp = await api.getAllUsers({ limit: 100000 });
+            if (allResp.success && allResp.data) {
+                allMembers = allResp.data;
+                updateMemberSummary(allMembers); // summary selalu all-member
             }
+
+            // Tabel & chart: load sesuai filter aktif
+            const reportType = document.getElementById('memberReportType')?.value || 'overview';
+            const period = document.getElementById('memberPeriod')?.value || 'month';
+
+            // Update badge label awal
+            const labels = {
+                week: 'Minggu Ini', month: 'Bulan Ini',
+                year: 'Tahun Ini', all: 'Semua Waktu'
+            };
+            const badge = document.getElementById('memberPeriodLabel');
+            if (badge) badge.textContent = labels[period] || period;
+
+            await fetchAndRenderMemberTable(reportType, period);
         } catch (error) {
             console.error('Error loading member data:', error);
             showToast('Gagal memuat data member', 'error');
+        }
+    }
+
+    // Fetch member sesuai filter untuk tabel & chart (summary tetap dari allMembers)
+    async function fetchAndRenderMemberTable(reportType, period) {
+        try {
+            const params = { limit: 100000 };
+            if (reportType && reportType !== 'overview') params.reportType = reportType;
+            if (period && period !== 'all') params.period = period;
+
+            const response = await api.getAllUsers(params);
+            if (response.success && response.data) {
+                const members = response.data;
+                updateMemberGrowthChart(members);
+                updateGenderChart(members);
+                updateMemberTable(members);
+            }
+        } catch (error) {
+            console.error('Error fetching member table data:', error);
         }
     }
 
@@ -73,14 +112,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Setup event listeners
     function setupEventListeners() {
-        // Financial report period
+        // Financial report period — update badge label
         const financialPeriod = document.getElementById('financialPeriod');
         if (financialPeriod) {
             financialPeriod.addEventListener('change', (e) => {
                 const customDateRange = document.getElementById('customDateRange');
                 if (customDateRange) {
-                    customDateRange.style.display = e.target.value === 'custom' ? 'block' : 'none';
+                    customDateRange.style.display = e.target.value === 'custom' ? 'flex' : 'none';
                 }
+                // Update badge label
+                const labels = {
+                    today: 'Hari Ini', week: 'Minggu Ini',
+                    month: 'Bulan Ini', year: 'Tahun Ini', custom: 'Custom Range'
+                };
+                const badge = document.getElementById('financialPeriodLabel');
+                if (badge) badge.textContent = labels[e.target.value] || e.target.value;
+            });
+        }
+
+        // Member report period — update badge label
+        const memberPeriod = document.getElementById('memberPeriod');
+        if (memberPeriod) {
+            memberPeriod.addEventListener('change', (e) => {
+                const labels = {
+                    week: 'Minggu Ini', month: 'Bulan Ini',
+                    year: 'Tahun Ini', all: 'Semua Waktu'
+                };
+                const badge = document.getElementById('memberPeriodLabel');
+                if (badge) badge.textContent = labels[e.target.value] || e.target.value;
             });
         }
 
@@ -286,16 +345,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const successTransactions = transactions.filter(t => t.status === 'success');
         const totalIncome = successTransactions.reduce((sum, t) => sum + getAmount(t), 0);
         const avgTransaction = successTransactions.length > 0 ? totalIncome / successTransactions.length : 0;
-        const newMembers = new Set(successTransactions.map(t => t.user_id)).size;
 
         document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
         document.getElementById('transactionCount').textContent = successTransactions.length;
         document.getElementById('avgTransaction').textContent = formatCurrency(avgTransaction);
-        document.getElementById('newMembers').textContent = newMembers;
     }
 
     // Generate financial report (filter by period)
     async function generateFinancialReport() {
+        const btn = document.getElementById('generateFinancialReport');
+        if (btn) { btn.disabled = true; btn.textContent = 'Memuat...'; }
         try {
             const period = document.getElementById('financialPeriod').value;
             let startDate, endDate;
@@ -303,23 +362,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (period === 'custom') {
                 startDate = document.getElementById('financialStartDate').value;
                 endDate = document.getElementById('financialEndDate').value;
+                if (!startDate || !endDate) {
+                    showToast('Pilih rentang tanggal terlebih dahulu', 'warning');
+                    return;
+                }
             }
 
             const response = await api.getAllTransactions({ period, startDate, endDate });
 
             if (response.success && response.data) {
                 const transactions = response.data;
+                allTransactions = transactions;
 
                 updateFinancialSummary(transactions);
                 updateFinancialChart(transactions);
                 updatePackageChart(transactions);
                 updateFinancialTable(transactions);
 
-                showToast('Laporan berhasil di-generate', 'success');
+                const periodLabels = {
+                    today: 'Hari Ini', week: 'Minggu Ini',
+                    month: 'Bulan Ini', year: 'Tahun Ini', custom: 'Custom'
+                };
+                showToast(`Laporan ${periodLabels[period] || period} berhasil di-generate`, 'success');
+            } else {
+                showToast('Gagal generate laporan keuangan', 'error');
             }
         } catch (error) {
             console.error('Error generating financial report:', error);
             showToast('Gagal generate laporan', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM9 17H7V10H9V17ZM13 17H11V7H13V17ZM17 17H15V13H17V17Z" fill="currentColor"/></svg> Generate`;
+            }
         }
     }
 
@@ -366,20 +441,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!tbody) return;
 
         if (transactions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Tidak ada data</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Tidak ada transaksi pada periode ini</td></tr>';
             return;
         }
 
-        tbody.innerHTML = transactions.map(t => `
+        tbody.innerHTML = transactions.map(t => {
+            const statusBadge = t.status === 'success'
+                ? '<span class="badge badge-success">Berhasil</span>'
+                : t.status === 'pending'
+                ? '<span class="badge badge-warning">Pending</span>'
+                : '<span class="badge badge-danger">Gagal</span>';
+            return `
             <tr>
                 <td>${formatDate(getTransactionDate(t))}</td>
-                <td>${t.id}</td>
-                <td>${t.user_name || '-'}</td>
+                <td><span style="font-family:monospace;font-size:.8rem;color:var(--text-3)">#${t.id}</span></td>
+                <td><span style="font-weight:600">${t.user_name || '-'}</span><br><span style="font-size:.75rem;color:var(--text-3)">${t.user_email || ''}</span></td>
                 <td>${t.package_name || '-'}</td>
                 <td>${getPaymentMethod(t)}</td>
-                <td>${formatCurrency(getAmount(t))}</td>
-            </tr>
-        `).join('');
+                <td><span style="font-weight:700;color:var(--success)">${formatCurrency(getAmount(t))}</span></td>
+            </tr>`;
+        }).join('');
     }
 
     // === UPDATE MEMBER SUMMARY ===
@@ -402,29 +483,69 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('activeMembersReport').textContent = activeMembers;
         document.getElementById('expiringMembersReport').textContent = expiringMembers;
         document.getElementById('expiredMembersReport').textContent = expiredMembers;
+
+        // Hitung persentase rasio keanggotaan
+        const activePercent = totalMembers > 0 ? Math.round((activeMembers / totalMembers) * 100) : 0;
+        const expiringPercent = totalMembers > 0 ? Math.round((expiringMembers / totalMembers) * 100) : 0;
+        const expiredPercent = totalMembers > 0 ? Math.round((expiredMembers / totalMembers) * 100) : 0;
+
+        // Update Progress Bars & Label Persen
+        const actFill = document.getElementById('activeMembersProgress');
+        const actPct = document.getElementById('activeMembersPercent');
+        if (actFill) actFill.style.width = `${activePercent}%`;
+        if (actPct) actPct.textContent = `${activePercent}%`;
+
+        const expFill = document.getElementById('expiringMembersProgress');
+        const expPct = document.getElementById('expiringMembersPercent');
+        if (expFill) expFill.style.width = `${expiringPercent}%`;
+        if (expPct) expPct.textContent = `${expiringPercent}%`;
+
+        const exdFill = document.getElementById('expiredMembersProgress');
+        const exdPct = document.getElementById('expiredMembersPercent');
+        if (exdFill) exdFill.style.width = `${expiredPercent}%`;
+        if (exdPct) exdPct.textContent = `${expiredPercent}%`;
     }
 
     // Generate member report (filter by type & period)
+    // Summary box selalu dari allMembers (semua member), tabel/chart dari filter
     async function generateMemberReport() {
+        const btn = document.getElementById('generateMemberReport');
+        if (btn) { btn.disabled = true; btn.textContent = 'Memuat...'; }
         try {
             const reportType = document.getElementById('memberReportType').value;
             const period = document.getElementById('memberPeriod').value;
 
-            const response = await api.getAllUsers({ reportType, period });
-
-            if (response.success && response.data) {
-                const members = response.data;
-
-                updateMemberSummary(members);
-                updateMemberGrowthChart(members);
-                updateGenderChart(members);
-                updateMemberTable(members);
-
-                showToast('Laporan berhasil di-generate', 'success');
+            // 1) Selalu refresh allMembers untuk summary yang akurat
+            const allResp = await api.getAllUsers({ limit: 100000 });
+            if (allResp.success && allResp.data) {
+                allMembers = allResp.data;
+                updateMemberSummary(allMembers); // summary dari semua member
             }
+
+            // 2) Fetch filtered data untuk tabel & chart
+            await fetchAndRenderMemberTable(reportType, period);
+
+            // Update badge label
+            const labels = {
+                week: 'Minggu Ini', month: 'Bulan Ini',
+                year: 'Tahun Ini', all: 'Semua Waktu'
+            };
+            const badge = document.getElementById('memberPeriodLabel');
+            if (badge) badge.textContent = labels[period] || period;
+
+            const reportTypeLabels = {
+                overview: 'Semua', active: 'Aktif',
+                expiring: 'Akan Expired', expired: 'Expired', new: 'Member Baru'
+            };
+            showToast(`Laporan member (${reportTypeLabels[reportType] || reportType}) berhasil di-generate`, 'success');
         } catch (error) {
             console.error('Error generating member report:', error);
             showToast('Gagal generate laporan', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM9 17H7V10H9V17ZM13 17H11V7H13V17ZM17 17H15V13H17V17Z" fill="currentColor"/></svg> Generate`;
+            }
         }
     }
 
@@ -455,27 +576,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         genderChart.update();
     }
 
-    // Update member table
+    // Update member table — gunakan membership_status dari DB
     function updateMemberTable(members) {
         const tbody = document.getElementById('memberReportTableBody');
         if (!tbody) return;
 
+        // Update count badge
+        const infoBadge = document.getElementById('memberTableInfo');
+        if (infoBadge) {
+            infoBadge.textContent = members.length > 0 ? `${members.length} member` : '';
+        }
+
         if (members.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Tidak ada data</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Tidak ada data member pada filter ini</td></tr>';
             return;
         }
 
         tbody.innerHTML = members.map(m => {
-            const status = getMembershipStatus(m.membership_expiry);
+            // Gunakan membership_status dari DB agar akurat
+            const status = getMembershipStatus(m.membership_expiry, m.membership_status || 'active');
+            const daysLeft = getDaysRemaining(m.membership_expiry);
+            const expiredText = daysLeft < 0
+                ? `<span class="days-hint" style="color:var(--danger)">${Math.abs(daysLeft)} hari lalu</span>`
+                : daysLeft === 0
+                ? `<span class="days-hint" style="color:var(--warning)">Hari ini</span>`
+                : daysLeft <= 7
+                ? `<span class="days-hint" style="color:var(--warning)">${daysLeft} hari lagi</span>`
+                : '';
+            
+            const initial = (m.name || 'M').charAt(0);
             return `
                 <tr>
-                    <td>${m.id}</td>
-                    <td>${m.name || '-'}</td>
-                    <td>${m.email || '-'}</td>
-                    <td>${m.package_name || '-'}</td>
+                    <td><span style="font-family:monospace;font-size:.8rem;color:var(--text-3)">#${m.id}</span></td>
+                    <td>
+                        <div class="member-avatar-cell">
+                            <div class="member-avatar-circle">${initial}</div>
+                            <div>
+                                <span style="font-weight:600;color:var(--text-1);">${m.name || '-'}</span><br>
+                                <span style="font-size:.75rem;color:var(--text-3)">${m.email || '-'}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${m.package_name ? `<span class="badge badge-info no-dot">${m.package_name}</span>` : '<span class="text-dim">-</span>'}</td>
                     <td><span class="badge ${status.class}">${status.label}</span></td>
                     <td>${formatDate(m.created_at)}</td>
-                    <td>${formatDate(m.membership_expiry)}</td>
+                    <td>${formatDate(m.membership_expiry)}${expiredText}</td>
                 </tr>
             `;
         }).join('');
