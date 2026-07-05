@@ -915,10 +915,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             const periodMonths = parseInt(document.getElementById('kmeansPeriod').value) || 1;
             const k = parseInt(document.getElementById('kmeansK').value) || 3;
 
-            // Ambil data check-in semua member dari admin API
+            // Tentukan rentang tanggal sesuai periode
+            // Gunakan string ISO datetime agar filter MySQL langsung compare ke kolom DATETIME
+            const toLocalDatetime = (d) => {
+                // Format: YYYY-MM-DD HH:mm:ss dalam timezone lokal
+                const pad = n => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            };
+
+            let startDate, endDate;
+            if (periodMonths === 1) {
+                // Bulan ini: dari tanggal 1 jam 00:00:00 sampai hari ini jam 23:59:59
+                const now = new Date();
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+                endDate   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+            } else {
+                // 3 / 6 bulan terakhir: rolling window
+                const now = new Date();
+                endDate   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+                startDate = new Date(now.getFullYear(), now.getMonth() - periodMonths, now.getDate(), 0, 0, 0);
+            }
+
             const [usersResp, checkinsResp] = await Promise.all([
                 api.getAllUsers(),
-                api.getAllCheckIns({ limit: 9999 })
+                api.getAllCheckIns({
+                    startDate: toLocalDatetime(startDate),
+                    endDate:   toLocalDatetime(endDate),
+                    limit: 10000
+                })
             ]);
 
             if (!usersResp.success || !checkinsResp.success) {
@@ -930,16 +954,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const allCheckIns = checkinsResp.data || [];
 
             // Hitung frekuensi check-in per user dalam periode
-            const cutoff = new Date();
-            cutoff.setMonth(cutoff.getMonth() - periodMonths);
-
             const checkinCount = {};
             allCheckIns.forEach(ci => {
-                const t = new Date(ci.check_in_time);
-                if (t >= cutoff) {
-                    const uid = ci.user_id;
-                    checkinCount[uid] = (checkinCount[uid] || 0) + 1;
-                }
+                const uid = ci.user_id;
+                checkinCount[uid] = (checkinCount[uid] || 0) + 1;
             });
 
             // Buat data array — satu entry per member (termasuk yang 0 check-in)
@@ -957,8 +975,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Jalankan K-Means
             const dataPoints  = memberData.map(m => m.checkins);
-            const assignments  = runKMeans(dataPoints, k);
-            const labelMap     = buildClusterLabels(memberData, assignments, k);
+            let assignments   = runKMeans(dataPoints, k);
+
+            // Post-processing: pastikan member dengan 0 check-in masuk klaster terendah
+            {
+                const totals = Array(k).fill(0);
+                const counts = Array(k).fill(0);
+                assignments.forEach((ci, idx) => {
+                    totals[ci] += memberData[idx].checkins;
+                    counts[ci]++;
+                });
+                const avgs = totals.map((t, i) => (counts[i] > 0 ? t / counts[i] : 0));
+                let lowestCluster = 0;
+                for (let i = 1; i < k; i++) {
+                    if (avgs[i] < avgs[lowestCluster]) lowestCluster = i;
+                }
+                // Jika semua klaster rata-rata 0, tidak ada data check-in → semua assign ke 0
+                const allZero = avgs.every(a => a === 0);
+                if (!allZero) {
+                    assignments = assignments.map((ci, idx) =>
+                        memberData[idx].checkins === 0 ? lowestCluster : ci
+                    );
+                }
+            }
+
+            console.log(`[K-Means] Periode: ${toLocalDatetime(startDate)} → ${toLocalDatetime(endDate)}`);
+            console.log(`[K-Means] Total check-in ditemukan dalam periode: ${allCheckIns.length}`);
+
+            const labelMap = buildClusterLabels(memberData, assignments, k);
 
             // Gabungkan hasil ke memberData
             kmeansResults = memberData.map((m, idx) => ({
@@ -968,8 +1012,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 colorIdx:     labelMap[assignments[idx]].colorIdx,
             }));
 
-            renderKMeansResults(labelMap, k, periodMonths);
-            showToast(`K-Means selesai: ${k} klaster dari ${memberData.length} member`, 'success');
+            const periodeLabel = periodMonths === 1
+                ? `Bulan ${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`
+                : `${periodMonths} Bulan Terakhir`;
+            renderKMeansResults(labelMap, k, periodMonths, periodeLabel);
+            showToast(`K-Means selesai: ${k} klaster dari ${memberData.length} member (${periodeLabel})`, 'success');
 
         } catch (error) {
             console.error('K-Means error:', error);
@@ -983,10 +1030,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ── Render: summary cards, charts, table ──────────────────────────────
-    function renderKMeansResults(labelMap, k, periodMonths) {
+    function renderKMeansResults(labelMap, k, periodMonths, periodeLabel) {
         // Tampilkan area hasil
         document.getElementById('kmeansEmpty').style.display    = 'none';
         document.getElementById('kmeansClusters').style.display = 'block';
+
+        // Update judul periode jika ada elemennya
+        const periodeEl = document.getElementById('kmeansPeriodeLabel');
+        if (periodeEl) periodeEl.textContent = periodeLabel || (periodMonths === 1 ? 'Bulan Ini' : `${periodMonths} Bulan Terakhir`);
+
+        // Update header kolom check-in tabel
+        const checkinHeader = document.getElementById('kmeansCheckinHeader');
+        if (checkinHeader) checkinHeader.textContent = `Check-in (${periodeLabel || periodMonths + ' bln'})`;
 
         // ── Summary Cards ──
         const cardsEl = document.getElementById('kmeansClusterCards');
@@ -998,7 +1053,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="summary-box-label">${info.label}</div>
                     <div class="summary-box-value" style="color:${col.text};">${info.count} member</div>
                     <div style="font-size:.75rem;color:var(--text-3);margin-top:4px;">
-                        Rata-rata ${info.avgCheckin.toFixed(1)} check-in / ${periodMonths} bln
+                        Rata-rata ${info.avgCheckin.toFixed(1)} check-in selama ${periodeLabel || periodMonths + ' bln'}
                     </div>
                 </div>`;
         });

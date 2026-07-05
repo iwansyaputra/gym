@@ -470,7 +470,7 @@ const getAllTransactions = async (req, res) => {
 // Get all check-ins (admin only)
 const getAllCheckIns = async (req, res) => {
     try {
-        const { date, limit = 100, offset = 0 } = req.query;
+        const { date, startDate, endDate, limit = 10000, offset = 0 } = req.query;
         let query = `
             SELECT 
                 c.*,
@@ -491,6 +491,18 @@ const getAllCheckIns = async (req, res) => {
         if (date) {
             query += ' AND DATE(c.check_in_time) = ?';
             params.push(date);
+        }
+
+        // startDate & endDate dikirim sebagai string ISO (YYYY-MM-DD HH:mm:ss)
+        // untuk menghindari masalah timezone saat pakai UNIX_TIMESTAMP
+        if (startDate) {
+            query += ' AND c.check_in_time >= ?';
+            params.push(startDate);
+        }
+
+        if (endDate) {
+            query += ' AND c.check_in_time <= ?';
+            params.push(endDate);
         }
 
         query += ' ORDER BY c.check_in_time DESC LIMIT ? OFFSET ?';

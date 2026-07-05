@@ -282,7 +282,7 @@
         <div class="charts-row" style="margin-bottom:16px;">
           <div class="card" style="flex:1 1 340px;">
             <div class="card-header">
-              <div><div class="card-title">Distribusi Klaster Check-in</div><div class="card-sub">Berdasarkan frekuensi check-in per bulan</div></div>
+              <div><div class="card-title">Distribusi Klaster Check-in</div><div class="card-sub">Periode: <span id="kmeansPeriodeLabel">Bulan Ini</span></div></div>
             </div>
             <div class="chart-wrap"><canvas id="kmeansBarChart"></canvas></div>
           </div>
@@ -308,7 +308,7 @@
                     <th>#</th>
                     <th>Nama Member</th>
                     <th>Email</th>
-                    <th>Check-in (bulan ini)</th>
+                    <th id="kmeansCheckinHeader">Check-in (Bulan Ini)</th>
                     <th>Klaster</th>
                     <th>Kategori</th>
                   </tr>
