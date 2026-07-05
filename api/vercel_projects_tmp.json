@@ -1,0 +1,67 @@
+﻿node.exe : Vercel CLI 54.20.1 (Node.js 22.14.0)
+At C:\Users\Iwan\.node22\node-v22.14.0-win-x64\vercel.ps1:16 char:5
++     & "$basedir/node$exe"  "$basedir/node_modules/vercel/dist/vc.js"  ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Vercel CLI 54.20.1 (Node.js 22.14.0):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Fetching projects in iwansyaputras-projects
+{
+  "projects": [
+    {
+      "name": "api",
+      "id": "prj_I3tiZhB6ps269zmrBo4xAg7HTLyJ",
+      "latestProductionUrl": "https://api-one-pi-42.vercel.app",
+      "updatedAt": 1783247994106,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    },
+    {
+      "name": "gym_api",
+      "id": "prj_txJqxwRaFAQbfce7ARfHf2wUf5Sn",
+      "latestProductionUrl": "https://api.gymku.my.id",
+      "updatedAt": 1783247841644,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    },
+    {
+      "name": "gym",
+      "id": "prj_n76GVEQBWruM3oVlk0g8gfVic3fz",
+      "latestProductionUrl": "https://gymku.my.id",
+      "updatedAt": 1783247831164,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    },
+    {
+      "name": "nasyaku",
+      "id": "prj_LJKcjDqMi2ceMs1WeoivwOSZW73P",
+      "latestProductionUrl": "https://www.nasyaku.my.id",
+      "updatedAt": 1782667076229,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    },
+    {
+      "name": "vercel-relay",
+      "id": "prj_js3zfizZdPWgy7NNZ88e22pAhKuN",
+      "latestProductionUrl": "https://vercel-relay-silk-six.vercel.app",
+      "updatedAt": 1782664485049,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    },
+    {
+      "name": "fastapi-python-boilerplate",
+      "id": "prj_O5ChbyR3e8fsJnTqrOdnlrcZ7mQU",
+      "latestProductionUrl": "https://fastapi-python-boilerplate-seven-pearl.vercel.app",
+      "updatedAt": 1778037722299,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    }
+  ],
+  "pagination": {
+    "count": 6,
+    "next": null,
+    "prev": 1783247994106
+  },
+  "contextName": "iwansyaputras-projects",
+  "elapsed": "2s"
+}

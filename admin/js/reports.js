@@ -889,17 +889,54 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Ranking klaster dari paling rajin (avg tertinggi) ke paling jarang
         const rankOrder = avgs
-            .map((avg, ci) => ({ ci, avg }))
+            .map((avg, ci) => ({ ci, avg, count: counts[ci] }))
             .sort((a, b) => b.avg - a.avg);
 
-        const categoryNames = ['Rajin', 'Sedang', 'Jarang', 'Sangat Jarang'];
+        // Filter hanya klaster yang aktif (memiliki member)
+        const activeRanks = rankOrder.filter(r => r.count > 0);
+        const totalActive = activeRanks.length;
+
+        // Pilihan nama kategori sesuai jumlah K
+        let categoryNames = ['Rajin', 'Sedang', 'Jarang', 'Sangat Jarang'];
+        if (k === 2) {
+            categoryNames = ['Rajin', 'Jarang'];
+        } else if (k === 3) {
+            categoryNames = ['Rajin', 'Sedang', 'Jarang'];
+        }
+
         const labelMap = {}; // ci → { label, colorIdx }
-        rankOrder.forEach(({ ci }, rank) => {
+        rankOrder.forEach((item) => {
+            const ci = item.ci;
+            const avg = item.avg;
+            const count = item.count;
+
+            let label = '';
+            if (count === 0 || avg === 0) {
+                // Jika klaster kosong ATAU rata-rata check-in nya 0, harus selalu kategori terendah
+                label = categoryNames[categoryNames.length - 1];
+            } else {
+                const activeIndex = activeRanks.findIndex(r => r.ci === ci);
+                if (activeIndex === 0) {
+                    label = categoryNames[0]; // Paling tinggi/rajin
+                } else if (activeIndex === totalActive - 1) {
+                    label = categoryNames[categoryNames.length - 1]; // Paling rendah/jarang
+                } else {
+                    label = 'Sedang';
+                }
+            }
+
+            // Petakan warna dengan konsisten berdasarkan label
+            let colorIdx = 0;
+            if (label === 'Rajin') colorIdx = 0; // Hijau
+            else if (label === 'Sedang') colorIdx = 1; // Biru
+            else if (label === 'Jarang') colorIdx = 2; // Kuning/Orange
+            else if (label === 'Sangat Jarang') colorIdx = 3; // Merah
+
             labelMap[ci] = {
-                label:     categoryNames[Math.min(rank, categoryNames.length - 1)],
-                colorIdx:  rank % CLUSTER_COLORS.length,
-                avgCheckin: avgs[ci],
-                count:      counts[ci],
+                label:      label,
+                colorIdx:   colorIdx,
+                avgCheckin: avg,
+                count:      count,
             };
         });
 
