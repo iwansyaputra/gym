@@ -27,12 +27,19 @@ async function loadDashboardData() {
     try {
         showLoading(true);
 
-        // Ambil data dari endpoint yang sama dengan transactions.html & reports.html
-        const [transactionsRes, usersRes, checkinsRes] = await Promise.allSettled([
+        // 1. Ambil stats dari endpoint DB-aggregated (akurat untuk stat cards)
+        // 2. Ambil data mentah untuk chart & activity list
+        const [dashStatsRes, transactionsRes, usersRes, checkinsRes] = await Promise.allSettled([
+            api.get(API_CONFIG.ENDPOINTS.DASHBOARD_STATS),
             api.getAllTransactions(),
             api.getAllUsers(),
-            api.getAllCheckIns({ limit: 10 })
+            api.getAllCheckIns({ limit: 50 })
         ]);
+
+        // Dashboard stats dari DB (akurat, sudah di-aggregate oleh SQL)
+        const dashStats = (dashStatsRes.status === 'fulfilled' && dashStatsRes.value.success)
+            ? dashStatsRes.value.data
+            : null;
 
         const transactions = (transactionsRes.status === 'fulfilled' && transactionsRes.value.success)
             ? transactionsRes.value.data || []
@@ -46,8 +53,10 @@ async function loadDashboardData() {
             ? checkinsRes.value.data || []
             : [];
 
-        // Hitung stats dari data real
-        const stats = calculateStats(transactions, users, checkins);
+        // Gunakan stats dari DB endpoint (akurat), fallback ke hitung manual
+        const stats = dashStats
+            ? buildStatsFromDB(dashStats, transactions, users)
+            : calculateStats(transactions, users, checkins);
 
         // Update tampilan
         updateStatCards(stats);
@@ -69,20 +78,72 @@ async function loadDashboardData() {
     }
 }
 
-// ===== HITUNG STATISTIK DARI DATA REAL =====
+// ===== BUILD STATS FROM DB ENDPOINT (AKURAT) =====
+function buildStatsFromDB(dbStats, transactions, users) {
+    const now = new Date();
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+    const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+    const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+
+    // Member growth calculation
+    const thisMonthNewMembers = users.filter(u => {
+        const d = new Date(u.created_at);
+        return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+    }).length;
+    const lastMonthNewMembers = users.filter(u => {
+        const d = new Date(u.created_at);
+        return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+    }).length;
+
+    const memberGrowthPct = lastMonthNewMembers > 0
+        ? Math.round(((thisMonthNewMembers - lastMonthNewMembers) / lastMonthNewMembers) * 100)
+        : (thisMonthNewMembers > 0 ? 100 : 0);
+
+    // Revenue growth calculation
+    const monthlyRevenue = dbStats.monthlyRevenue || 0;
+    const lastMonthRevenue = transactions
+        .filter(t => {
+            if (t.status !== 'success') return false;
+            const tDate = new Date(t.tanggal_transaksi || t.created_at);
+            return tDate.getMonth() === lastMonth && tDate.getFullYear() === lastMonthYear;
+        })
+        .reduce((sum, t) => sum + parseFloat(t.jumlah || t.amount || 0), 0);
+
+    const revenueGrowthPct = lastMonthRevenue > 0
+        ? Math.round(((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+        : (monthlyRevenue > 0 ? 100 : 0);
+
+    return {
+        totalMembers: dbStats.totalMembers || 0,
+        todayCheckins: dbStats.todayCheckins || 0,   // Dari DB COUNT(*), akurat!
+        monthlyRevenue,
+        expiringMembers: dbStats.expiringMembers || 0,
+        memberGrowthPct,
+        revenueGrowthPct
+    };
+}
+
+// ===== FALLBACK: HITUNG STATISTIK DARI DATA CLIENT-SIDE =====
 function calculateStats(transactions, users, checkins) {
     // Total member
     const totalMembers = users.length;
 
-    // Check-in hari ini
-    const today = new Date().toDateString();
+    // Check-in hari ini — gunakan tanggal lokal, bukan UTC
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
     const todayCheckins = checkins.filter(c => {
-        const checkinDate = new Date(c.check_in_time || c.created_at).toDateString();
-        return checkinDate === today;
+        const raw = (c.check_in_time || c.created_at || '').replace(' ', 'T');
+        const hasTimezone = raw.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(raw);
+        // Jika tidak ada timezone info, anggap sudah WIB (append Z lalu baca UTC)
+        const d = hasTimezone ? new Date(raw) : new Date(raw + 'Z');
+        const y = d.getUTCFullYear();
+        const m = String(d.getUTCMonth()+1).padStart(2,'0');
+        const day = String(d.getUTCDate()).padStart(2,'0');
+        return `${y}-${m}-${day}` === todayStr;
     }).length;
 
     // Pendapatan bulan ini (dari transaksi success)
-    const now = new Date();
     const thisMonth = now.getMonth();
     const thisYear = now.getFullYear();
 

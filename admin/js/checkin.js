@@ -243,9 +243,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Auto check-in langsung
+            // Auto check-in langsung (via admin endpoint, bukan /check-in/nfc)
             updateScannerStatus('scanning', `${currentMember.name} ditemukan — Check-in...`);
-            const checkinResp = await api.checkInNFC(nfcId);
+            const checkinResp = await api.adminManualCheckIn(nfcId);
 
             if (checkinResp.success) {
                 updateScannerStatus('success', `✅ ${currentMember.name} berhasil check-in!`);
@@ -285,8 +285,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
-            // Gunakan endpoint /nfc — barulah check-in dicatat ke DB
-            const response = await api.checkInNFC(currentNfcId);
+            // Gunakan admin endpoint — barulah check-in dicatat ke DB
+            const response = await api.adminManualCheckIn(currentNfcId);
 
             if (response.success) {
                 showSuccessModal();

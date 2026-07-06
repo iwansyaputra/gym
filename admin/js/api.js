@@ -37,10 +37,19 @@ class ApiClient {
 
             const data = await response.json();
 
-            // Untuk status 401 — logout paksa
+            // Untuk status 401 — hanya logout paksa jika ini masalah token/session,
+            // BUKAN jika 401 berasal dari endpoint operasional (mis. check-in)
             if (response.status === 401) {
-                auth.logout();
-                throw new Error(data.message || 'Unauthorized');
+                const isTokenIssue = (data.message || '').toLowerCase().includes('token')
+                    || (data.message || '').toLowerCase().includes('login');
+                const isCheckinEndpoint = endpoint.includes('/check-in/');
+
+                if (isTokenIssue && !isCheckinEndpoint) {
+                    auth.logout();
+                    throw new Error(data.message || 'Unauthorized');
+                }
+                // Untuk check-in atau non-token 401, kembalikan data apa adanya
+                return data;
             }
 
             // Untuk status lain yang bukan ok (4xx/5xx), kembalikan data apa adanya
@@ -144,6 +153,11 @@ class ApiClient {
 
     async checkInNFC(nfcId) {
         return this.post(API_CONFIG.ENDPOINTS.CHECKIN_NFC, { nfc_id: nfcId });
+    }
+
+    // Manual check-in via admin endpoint (JWT auth, bukan X-NFC-Secret)
+    async adminManualCheckIn(nfcId) {
+        return this.post('/admin/checkin', { nfc_id: nfcId });
     }
 
     async getCheckInHistory(params = {}) {

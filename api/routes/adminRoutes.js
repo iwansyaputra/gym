@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const checkInController = require('../controllers/checkInController');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 
 // All admin routes require authentication AND admin role
@@ -43,5 +44,8 @@ router.post('/wallets/topup', adminController.topUpWallet);
 
 // Get member wallet history
 router.get('/wallets/:userId/history', adminController.getMemberWalletHistory);
+
+// Manual check-in via admin (reuse checkInNFC — req.user sudah di-set oleh verifyToken)
+router.post('/checkin', checkInController.checkInNFC);
 
 module.exports = router;
